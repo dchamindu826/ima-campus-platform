@@ -3231,7 +3231,7 @@ exports.runAutoAssignEngine = async () => {
     }
 };
 
-setInterval(() => { exports.runAutoAssignEngine(); }, 60 * 1000); // Run every 1 minute
+require('../src/core/jobs').every('free-seminar-auto-assign', 60 * 1000, () => exports.runAutoAssignEngine()); // every 1 minute, jobs process only
 
 
 // ==========================================

@@ -262,7 +262,8 @@ require('./services/backupService');
 
 // 🔥 GOOGLE SHEETS CACHE ENGINE 🔥
 const { initCacheJob } = require('./utils/gsheetCache');
-initCacheJob();
+// The sheet cache is read by API requests, so it lives in the process that serves HTTP.
+if (require('./src/core/jobs').serverEnabled()) initCacheJob();
 
 // ================= SERVER START =================
 const http = require('http');
@@ -273,14 +274,21 @@ server.timeout = 300000; // 5 minutes
 server.headersTimeout = 305000; // 5 minutes + 5s
 server.keepAliveTimeout = 65000;
 
-// Initialize Socket.io Chat
-const { initSocket } = require('./controllers/chatController');
-initSocket(server);
-
+// IMA_ROLE=worker runs background jobs only: no port, no sockets (see src/core/jobs.js)
 const PORT = process.env.PORT || 5000;
-server.listen(PORT, () => {
-    console.log(`🚀 Backend Server is running cleanly on port ${PORT}`);
-});
+if (require('./src/core/jobs').serverEnabled()) {
+    // Initialize Socket.io Chat
+    const { initSocket } = require('./controllers/chatController');
+    initSocket(server);
+
+    server.listen(PORT, () => {
+        console.log(`🚀 Backend Server is running cleanly on port ${PORT}`);
+    });
+} else {
+    console.log('🛠️  Worker mode: background jobs only, no HTTP port opened');
+}
+// Log which jobs this process runs, once every module has registered its jobs.
+setImmediate(() => console.log(`[jobs] ${require('./src/core/jobs').summary()}`));
 
 
 // ==========================================================
@@ -288,18 +296,19 @@ server.listen(PORT, () => {
 // ==========================================================
 // හැමදාම පාන්දර 12:00 ට Auto Assign එකට අදාලව දීපු ගාන (assigned count) 0 කරනවා
 const cron = require('node-cron');
+const jobs = require('./src/core/jobs'); // runs only in the jobs process (see src/core/jobs.js)
 require('./services/liveClassCronService');
 const { PrismaClient } = require('@prisma/client');
 const prismaTaskGen = require('./src/core/db');
 const { generateYoutubeCookies } = require('./utils/youtubeCookieManager');
 
 // Run cookie generator at midnight every day
-cron.schedule('0 0 * * *', async () => {
+jobs.schedule('youtube-cookie-generator', '0 0 * * *', async () => {
     console.log("⏰ Running Daily YouTube Cookie Generator...");
     await generateYoutubeCookies();
 });
 
-cron.schedule('0 0 * * *', async () => {
+jobs.schedule('auto-assign-quota-reset', '0 0 * * *', async () => {
     console.log("⏰ Running Daily Auto Assign Quota Reset...");
     try {
         const result = await prismaTaskGen.autoAssignQuota.updateMany({
@@ -318,7 +327,7 @@ cron.schedule('0 0 * * *', async () => {
 
 
 // හැමදාම පාන්දර 12:05 ට මේක Auto Run වෙනවා ('5 0 * * *')
-cron.schedule('5 0 * * *', async () => {
+jobs.schedule('daily-custom-task-generator', '5 0 * * *', async () => {
     console.log("⏰ Running Daily Custom Task Generator...");
     try {
         // SLT වෙලාව හදාගන්නවා
@@ -408,7 +417,7 @@ cron.schedule('5 0 * * *', async () => {
 // 🔥 AUTO ROUND PUSH FOR ALL INQUIRIES (CRON JOB) 🔥
 // ==========================================================
 // හැමදාම රෑ 12:10 ට මේක Auto Run වෙනවා
-cron.schedule('10 0 * * *', async () => {
+jobs.schedule('auto-round-push', '10 0 * * *', async () => {
     console.log("⏰ Running Daily Auto Round Push (5-Day & 7-Day Rules)...");
     try {
         const now = new Date();
@@ -594,7 +603,7 @@ cron.schedule('10 0 * * *', async () => {
 // ==========================================================
 let lastAiVerificationRunMinute = -1;
 
-cron.schedule('* * * * *', async () => {
+jobs.schedule('ai-slip-verification-schedule', '* * * * *', async () => {
     try {
         const configSetting = await prismaTaskGen.appSetting.findUnique({ where: { key: 'AI_SLIP_VERIFICATION_SCHEDULE' } });
         if (!configSetting || !configSetting.value) {

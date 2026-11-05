@@ -792,8 +792,9 @@ exports.getBatchStock = async (req, res) => {
 // ================= DISPATCH / HISTORY & CRON JOBS =================
 
 const cron = require('node-cron');
+const jobs = require('../src/core/jobs'); // runs only in the jobs process (see src/core/jobs.js)
 
-cron.schedule('0 * * * *', async () => {
+jobs.schedule('delivery-auto-status-hourly', '0 * * * *', async () => {
     try {
         const tenHoursAgo = new Date(Date.now() - 10 * 60 * 60 * 1000);
 
@@ -813,7 +814,7 @@ cron.schedule('0 * * * *', async () => {
     }
 });
 
-cron.schedule('0 8 * * *', async () => {
+jobs.schedule('delivery-daily-0800', '0 8 * * *', async () => {
     try {
         const dispatchedOrders = await prisma.delivery.findMany({
             where: { status: 'On the way' },
