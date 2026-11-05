@@ -291,16 +291,12 @@ exports.archiveCampaign = async (req, res) => {
     try {
         const { businessId, campaignType } = req.body;
 
-        try {
-            await prisma.lead.updateMany({
-                where: { businessId: parseInt(businessId), campaignType, status: { not: 'ARCHIVED' } },
-                data: { status: 'ARCHIVED' }
-            });
-        } catch (e) {
-            console.log("No lead table found to archive. Skipping lead update.");
-        }
-
-        res.status(200).json({ message: "Campaign archived successfully." });
+        // This used to filter leads by a businessId column that does not exist, so it
+        // always failed silently and then told staff "archived successfully" while
+        // nothing changed. Enabling a real bulk archive is a CRM-module task (it can
+        // change thousands of leads), so for now report honestly that nothing changed.
+        console.warn(`[CRM] Archive requested for business=${businessId} campaign=${campaignType} — not implemented, no leads changed`);
+        return res.status(501).json({ error: "Campaign archive is not available yet. No leads were changed." });
     } catch (error) {
         console.error("Archive error:", error);
         res.status(500).json({ error: "Failed to archive campaign" });

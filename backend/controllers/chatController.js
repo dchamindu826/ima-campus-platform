@@ -791,10 +791,12 @@ exports.getMyBusinesses = async (req, res) => {
                 const normPhone = studentUser.phone.replace(/[^0-9]/g, '').slice(-9);
                 const leads = await prisma.lead.findMany({
                     where: { phone: { contains: normPhone } },
-                    select: { phone: true, businessId: true }
+                    // Lead has no businessId column; the business comes through its batch.
+                    select: { phone: true, batch: { select: { businessId: true } } }
                 });
                 leads.forEach(l => {
-                    if (l.businessId && !bIds.includes(l.businessId)) bIds.push(l.businessId);
+                    const leadBizId = l.batch?.businessId;
+                    if (leadBizId && !bIds.includes(leadBizId)) bIds.push(leadBizId);
                     const match = l.phone?.match(/_BIZ_(\d+)/);
                     if (match) {
                         const parsedB = parseInt(match[1]);

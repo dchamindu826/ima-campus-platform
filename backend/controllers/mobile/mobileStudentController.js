@@ -956,18 +956,13 @@ exports.verifyStudent = async (req, res) => {
         const payload = ticket.getPayload();
         const email = payload['email'];
 
-        // Check if student exists with this email
-        // Adjust the query depending on how the email is stored in your DB. 
-        // Some systems store it in 'email' field or 'username'. We assume 'email'.
-        const student = await prisma.user.findFirst({ 
-            where: { 
-                email: email, 
-                role: 'student' 
-            } 
-        });
-        
+        // The User table has no email column, so a Google account cannot be matched
+        // to a student yet (the old query always crashed with a 500). Until an email
+        // column is added and filled, tell the student to use phone login instead.
+        const student = null;
         if (!student) {
-             return res.status(403).json({ error: "Email not found in our student list" });
+             console.warn(`[Google Sign-In] Not linked yet, rejected sign-in for ${email}`);
+             return res.status(403).json({ error: "Google Sign-In is not available yet. Please log in with your phone number and password." });
         }
 
         // Generate JWT token for the app session
