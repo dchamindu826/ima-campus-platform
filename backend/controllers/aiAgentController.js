@@ -1,5 +1,5 @@
 const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const prisma = require('../src/core/db');
 const { GoogleAuth } = require('google-auth-library');
 const axios = require('axios');
 const path = require('path');

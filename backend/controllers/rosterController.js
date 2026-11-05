@@ -1,5 +1,5 @@
 const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const prisma = require('../src/core/db');
 
 // 1. Get Monthly Roster for a specific Staff Member
 exports.getMonthlyRoster = async (req, res) => {

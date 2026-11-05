@@ -1,6 +1,6 @@
 const cron = require('node-cron');
 const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const prisma = require('../src/core/db');
 const aiVerificationController = require('../controllers/aiVerificationController');
 
 // Run every minute to check if current time matches any scheduled time

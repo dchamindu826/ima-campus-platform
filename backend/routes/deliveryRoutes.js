@@ -3,7 +3,7 @@ const router = express.Router();
 const deliveryController = require('../controllers/deliveryController');
 const verifyToken = require('../middlewares/authMiddleware');
 const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const prisma = require('../src/core/db');
 const multer = require('multer');
 const path = require('path');
 

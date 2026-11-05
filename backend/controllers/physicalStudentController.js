@@ -1,5 +1,5 @@
 const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const prisma = require('../src/core/db');
 
 // Create a new Physical Student
 exports.createPhysicalStudent = async (req, res) => {

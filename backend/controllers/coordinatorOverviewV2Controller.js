@@ -1,5 +1,5 @@
 const { PrismaClient } = require('@prisma/client');
-const prisma = global.prisma || new PrismaClient();
+const prisma = require('../src/core/db');
 if (process.env.NODE_ENV !== 'production') global.prisma = prisma;
 
 exports.getCoordinatorV2Stats = async (req, res) => {

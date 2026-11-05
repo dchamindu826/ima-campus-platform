@@ -1,5 +1,5 @@
 const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const prisma = require('../src/core/db');
 
 const auditMiddleware = (req, res, next) => {
     // Skip read-only requests (GET, OPTIONS, HEAD) to save database space and avoid bottlenecking the database

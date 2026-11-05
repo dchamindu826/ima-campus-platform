@@ -1,5 +1,5 @@
 const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const prisma = require('../src/core/db');
 
 // 🔥 Robust SLT Time Parser (Server Timezone අවුල් සදහටම විසඳන කෑල්ල) 🔥
 const parseSLTDate = (dateStr, timeStr = "00:00") => {

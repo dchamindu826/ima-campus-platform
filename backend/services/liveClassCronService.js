@@ -1,6 +1,6 @@
 const cron = require('node-cron');
 const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const prisma = require('../src/core/db');
 const admin = require('firebase-admin');
 
 // Helper to parse time strings like "8:30 PM", "20:30", "08:30", "8.30 PM" into { hours, minutes }

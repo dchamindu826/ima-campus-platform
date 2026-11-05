@@ -1,4 +1,5 @@
 const express = require('express');
+const { guardCourseParam } = require('../src/modules/entitlement/guard');
 const router = express.Router();
 const studentController = require('../controllers/studentController'); // 🔥 මේක විතරයි දැන් ඕනේ
 const paycorpController = require('../controllers/paycorpController');
@@ -42,7 +43,7 @@ router.post('/upload-due-slip', verifyToken, uploadDocument.array('slipImages', 
 router.post('/pay-due-online', verifyToken, studentController.payDueOnline);
 
 router.get('/classroom', verifyToken, studentController.getStudentClassroom);
-router.get('/module/:id', verifyToken, studentController.getCourseModules);
+router.get('/module/:id', verifyToken, guardCourseParam('id'), studentController.getCourseModules);
 router.get('/my-payments', verifyToken, studentController.getMyPayments);
 
 router.get('/getVideoStream/:videoId', verifyToken, studentController.getVideoStream);

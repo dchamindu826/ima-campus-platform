@@ -1,5 +1,5 @@
 const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const prisma = require('../src/core/db');
 const admin = require("firebase-admin"); 
 
 const resolveTutesForDeliveryItem = (item, d, courses, allGroups = []) => {

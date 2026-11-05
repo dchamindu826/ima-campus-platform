@@ -1,5 +1,5 @@
 const { PrismaClient, Prisma } = require('@prisma/client');
-const prisma = new PrismaClient();
+const prisma = require('../src/core/db');
 
 exports.getAllData = async (req, res) => {
     try {

@@ -1,5 +1,5 @@
 const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const prisma = require('../src/core/db');
 
 const getScopedBusinessId = async (user, requestedBusinessId = null) => {
     if (!user) return null;

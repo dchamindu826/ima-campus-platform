@@ -170,6 +170,9 @@ app.use(require('./routes/whatsappRotatorRoutes'));
 const auditMiddleware = require('./middlewares/auditMiddleware');
 app.use(auditMiddleware);
 
+// ================= NEW MODULAR API (see ARCHITECTURE.md) =================
+app.use('/api/v2', require('./src/v2'));
+
 // ================= ROUTES =================
 app.use('/api/library', require('./routes/libraryRoutes'));
 app.use('/api/auth', require('./routes/authRoutes'));
@@ -283,7 +286,7 @@ server.listen(PORT, () => {
 const cron = require('node-cron');
 require('./services/liveClassCronService');
 const { PrismaClient } = require('@prisma/client');
-const prismaTaskGen = new PrismaClient();
+const prismaTaskGen = require('./src/core/db');
 const { generateYoutubeCookies } = require('./utils/youtubeCookieManager');
 
 // Run cookie generator at midnight every day

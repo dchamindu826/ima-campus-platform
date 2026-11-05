@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const prisma = require('../src/core/db');
 const studentController = require('../controllers/studentController');
 const adminController = require('../controllers/adminController'); 
 const databaseController = require('../controllers/databaseController');

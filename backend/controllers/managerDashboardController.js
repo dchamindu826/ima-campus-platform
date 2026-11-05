@@ -1,5 +1,5 @@
 const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const prisma = require('../src/core/db');
 
 // Helper to filter leads by business safely
 const buildLeadFilter = (bizId, batId) => {

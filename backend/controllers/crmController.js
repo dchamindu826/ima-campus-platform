@@ -1,5 +1,5 @@
 const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const prisma = require('../src/core/db');
 const fs = require('fs');
 const pdfParse = require('pdf-parse'); 
 const ffmpeg = require('fluent-ffmpeg');

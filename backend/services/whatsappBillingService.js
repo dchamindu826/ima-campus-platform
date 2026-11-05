@@ -1,5 +1,5 @@
 const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const prisma = require('../src/core/db');
 
 // Default Meta Cloud API Rates (Sri Lanka / USD)
 const DEFAULT_RATES = {

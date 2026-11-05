@@ -1,7 +1,7 @@
 const { PrismaClient } = require('@prisma/client');
 const bcrypt = require('bcrypt');
 const crypto = require('crypto');
-const prisma = new PrismaClient();
+const prisma = require('../src/core/db');
 
 // 🔥 Role Format Fixer Helper 🔥
 const checkIsTopLevel = (role) => {
