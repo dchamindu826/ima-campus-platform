@@ -1,0 +1,60 @@
+{
+  "name": "zoom-yt-uploader",
+  "private": true,
+  "version": "0.0.0",
+  "type": "commonjs",
+  "main": "electron/main.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "lint": "oxlint",
+    "preview": "vite preview",
+    "electron:start": "electron . --no-sandbox",
+    "start": "concurrently \"vite --port 5180\" \"wait-on tcp:5180 && electron . --no-sandbox\"",
+    "pack": "electron-builder --dir",
+    "dist": "vite build && electron-builder --win"
+  },
+  "build": {
+    "appId": "com.ima.zoomytuploader",
+    "productName": "Zoom to YouTube Uploader",
+    "directories": {
+      "output": "release"
+    },
+    "win": {
+      "target": "portable"
+    },
+    "portable": {
+      "artifactName": "${productName}_Portable.exe"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  },
+  "dependencies": {
+    "axios": "^1.18.1",
+    "fluent-ffmpeg": "^2.1.3",
+    "form-data": "^4.0.6",
+    "googleapis": "^173.0.0",
+    "lucide-react": "^1.21.0",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "server-destroy": "^1.0.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.3.1",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.2",
+    "autoprefixer": "^10.5.1",
+    "concurrently": "^10.0.3",
+    "electron": "^42.4.1",
+    "electron-builder": "^26.15.3",
+    "oxlint": "^1.69.0",
+    "postcss": "^8.5.15",
+    "tailwindcss": "^4.3.1",
+    "vite": "^8.1.0",
+    "wait-on": "^9.0.10"
+  }
+}

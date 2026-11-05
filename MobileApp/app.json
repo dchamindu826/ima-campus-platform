@@ -1,0 +1,72 @@
+{
+  "expo": {
+    "name": "IMA Campus",
+    "slug": "imaacademyapp",
+    "version": "1.0.0",
+    "orientation": "default",
+    "icon": "./src/assets/logo.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./src/assets/logo.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.imacampus.app",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSPhotoLibraryUsageDescription": "The app accesses your photos to upload profile pictures.",
+        "NSCameraUsageDescription": "The app accesses your camera to take profile pictures.",
+        "NSMicrophoneUsageDescription": "The app accesses your microphone for video.",
+        "NSLocalNetworkUsageDescription": "Allow IMA Campus to connect to the local development server.",
+        "UIAppFonts": [
+          "AntDesign.ttf",
+          "Entypo.ttf",
+          "EvilIcons.ttf",
+          "Feather.ttf",
+          "FontAwesome.ttf",
+          "FontAwesome5_Brands.ttf",
+          "FontAwesome5_Regular.ttf",
+          "FontAwesome5_Solid.ttf",
+          "FontAwesome6_Brands.ttf",
+          "FontAwesome6_Regular.ttf",
+          "FontAwesome6_Solid.ttf",
+          "Fontisto.ttf",
+          "Foundation.ttf",
+          "Ionicons.ttf",
+          "MaterialCommunityIcons.ttf",
+          "MaterialIcons.ttf",
+          "Octicons.ttf",
+          "SimpleLineIcons.ttf",
+          "Zocial.ttf"
+        ]
+      },
+      "googleServicesFile": "./GoogleService-Info.plist"
+    },
+    "android": {
+      "package": "com.imacampus.app",
+      "versionCode": 2,
+      "adaptiveIcon": {
+        "foregroundImage": "./src/assets/logo.png",
+        "backgroundColor": "#ffffff"
+      },
+      "googleServicesFile": "./google-services.json"
+    },
+    "web": {
+      "favicon": "./src/assets/logo.png"
+    },
+    "plugins": [
+      "@react-native-firebase/app",
+      "@react-native-firebase/messaging"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "acdf75f5-3459-4ffa-b1d1-244d4d752220"
+      }
+    }
+  }
+}

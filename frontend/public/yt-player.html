@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Opening Secure Stream...</title>
+    <style>
+        body { background-color: #0f172a; color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; font-family: Arial, sans-serif; text-align: center; }
+        .spinner { border: 4px solid rgba(255, 255, 255, 0.1); width: 40px; height: 40px; border-radius: 50%; border-left-color: #dc2626; animation: spin 1s linear infinite; margin-bottom: 20px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .btn { display: inline-block; background-color: #dc2626; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; margin-top: 20px; font-size: 14px; }
+    </style>
+</head>
+<body>
+    <div class="spinner"></div>
+    <h3 style="margin: 0; padding: 0;">Opening YouTube Securely...</h3>
+    <p style="color: #94a3b8; font-size: 12px; margin-top: 10px;">Please wait. You will be redirected to the YouTube App.</p>
+    
+    <a id="fallbackBtn" href="#" class="btn" style="display: none;">Open Video Manually</a>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const ytId = urlParams.get('v');
+
+        if (ytId) {
+            const fallbackUrl = `https://www.youtube.com/watch?v=${ytId}`;
+            // App එක ඇතුළේ වැඩ කරන Android Intent එක
+            const intentUrl = `intent://${ytId}#Intent;scheme=vnd.youtube;package=com.google.android.youtube;S.browser_fallback_url=${encodeURIComponent(fallbackUrl)};end;`;
+            
+            document.getElementById('fallbackBtn').href = intentUrl;
+
+            setTimeout(() => {
+                // 1. මුලින්ම Intent එක Try කරනවා (App එක ඕපන් කරන්න)
+                window.location.href = intentUrl;
+                
+                // 2. ඒක වැඩ කරේ නැත්නම් තත්පර 2කින් Web එකේම ලෝඩ් කරනවා
+                setTimeout(() => {
+                    document.getElementById('fallbackBtn').style.display = 'inline-block';
+                    window.location.href = fallbackUrl;
+                }, 2000);
+
+            }, 500);
+        } else {
+            document.body.innerHTML = "<h3>Invalid Video ID</h3>";
+        }
+    </script>
+</body>
+</html>

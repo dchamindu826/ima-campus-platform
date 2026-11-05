@@ -1,0 +1,49 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model MockStudent {
+  id         Int           @id @default(autoincrement())
+  studentId  String        @unique
+  name       String
+  subject    String
+  feeAmount  Float
+  batch      String?
+  phone      String?
+  payments   MockPayment[]
+}
+
+model MockPayment {
+  id          Int         @id @default(autoincrement())
+  studentId   Int
+  student     MockStudent @relation(fields: [studentId], references: [id])
+  uploadDate  DateTime    @default(now())
+  slipUrl     String      // URL/path to uploaded image
+  status      String      @default("PENDING") // PENDING, VERIFIED, REJECTED
+  remark      String? 
+  isManual    Boolean   @default(false)
+  
+  // AI Extracted Data
+  extractedDate   String?
+  extractedAmount Float?
+  extractedRefNo  String?
+  
+  // Matched Statement Data
+  matchedRowId Int?
+}
+
+model StatementRow {
+  id            Int      @id @default(autoincrement())
+  uploadBatchId String   // To group uploads
+  date          String
+  description   String
+  referenceNo   String
+  amount        Float
+  sheetName     String?  // Source Excel sheet category
+  isMatched     Boolean  @default(false)
+}

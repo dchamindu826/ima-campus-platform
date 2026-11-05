@@ -1,0 +1,1771 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             Int     @id @default(autoincrement())
+  firstName      String
+  lastName       String
+  phone          String  @unique
+  whatsapp       String?
+  optionalPhone  String?
+  nic            String?
+  addressHouseNo String?
+  addressStreet  String?
+  city           String?
+  district       String?
+  password       String
+  role           String  @default("Student")
+  department     String?
+  businessType   String?  @db.Text
+
+  image String?
+  
+  appChatUsername String?
+  appChatDp       String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  payments        Payment[]
+  assignedLeads   Lead[]           @relation("AssignedLeads")
+  sentMessages    ChatMessage[]    @relation("SentMessages")
+  autoAssignQuota AutoAssignQuota?
+  session_id      String?
+
+  assignedTasks         Task[]                @relation("AssignedTasks")
+  autoAssignedTemplates CustomTaskTemplate[]  @relation("AutoAssignedUser")
+  coordinatorDailyLogs  CoordinatorDailyLog[]
+
+  actionedPayments Payment[]     @relation("ActionedPayments")
+  walletBalance    Float         @default(0)
+  staffRosters     StaffRoster[]
+  notes            Note[]
+  quickReplies     QuickReply[]
+  appChatMessages  AppChatMessage[]
+  agentCallRecords WhatsAppCallRecord[] @relation("AgentCallRecords")
+  passedCallRecords WhatsAppCallRecord[] @relation("PassedCallRecords")
+  paymentAuditLogs PaymentAuditLog[] @relation("PaymentAuditLogs")
+
+  webInquiries           WebInquiry[]        @relation("StudentWebInquiries")
+  assignedWebInquiries   WebInquiry[]        @relation("AssignedWebInquiries")
+  sentWebInquiryMessages WebInquiryMessage[] @relation("SentWebInquiryMessages")
+
+  agentStatus            String  @default("OFFLINE") // OFFLINE, ACTIVE, LUNCH, AWAY, IN_CALL
+  extension              String?
+  hasCallChannel         Boolean @default(false)
+  fcmToken               String? @db.Text
+
+  systemAuditLogs        SystemAuditLog[]
+  actionedCallLogs       CallCampaignAuditLog[] @relation("ActionedCallCampaignLogs")
+  paperSubmissions       PaperSubmission[]
+  blockedNumbers         BlockedNumber[]        @relation("BlockedByUser")
+  missedCallTasksAssigned MissedCallTask[]      @relation("MissedCallTaskAssignee")
+  missedCallTasksManaged  MissedCallTask[]      @relation("MissedCallTaskAssignedBy")
+
+  pettyCashRequested       PettyCashTransaction[] @relation("PettyCashRequester")
+  pettyCashApproved        PettyCashTransaction[] @relation("PettyCashAdminManager")
+  pettyCashIssued          PettyCashTransaction[] @relation("PettyCashIssuedBy")
+  pettyCashVerified        PettyCashTransaction[] @relation("PettyCashVerifiedBy")
+  pettyCashAuditLogs       PettyCashAuditLog[]    @relation("PettyCashAuditUser")
+  pettyCashReloadsPerformed PettyCashReload[]     @relation("PettyCashReloadPerformedBy")
+}
+
+model Business {
+  id                               Int      @id @default(autoincrement())
+  name                             String
+  category                         String
+  medium                           String   @default("Sinhala")
+  description                      String?
+  logo                             String?
+  streams                          String?
+  itemOrder                        Int      @default(1)
+  isDiscountEnabledForInstallments Int      @default(0)
+  head_manager_id                  Int?
+  ass_manager_id                   Int?
+  merchantId                       String?
+  status                           Int      @default(1)
+  batches                          Batch[]
+  createdAt                        DateTime @default(now())
+
+  crmSettings  CrmSettings? @relation(fields: [crmSettingId], references: [id])
+  crmSettingId Int?
+
+  ringtone     String?      @default("01.mp3")
+
+  autoReplies AutoReply[]
+  payments    Payment[]
+
+  taskTemplates       TaskTemplate[]
+  tasks               Task[]
+  customTaskTemplates CustomTaskTemplate[]
+
+  webInquiries WebInquiry[]
+  
+  whatsappCalls WhatsAppCallRecord[]
+  missedCallTasks MissedCallTask[]
+  whatsappBillingRecords WhatsAppBillingRecord[]
+
+  pettyCashAccount        PettyCashAccount?
+  pettyCashTransactions   PettyCashTransaction[]
+  pettyCashReloads        PettyCashReload[]
+}
+
+model Batch {
+  id          Int      @id @default(autoincrement())
+  name        String
+  logo        String?
+  type        Int      @default(1)
+  itemOrder   Int      @default(1)
+  description String?
+  status      Int      @default(1)
+  businessId  Int
+  startMonth  String?
+  endMonth    String?
+  business    Business @relation(fields: [businessId], references: [id])
+  groups      Group[]
+  createdAt   DateTime @default(now())
+
+  payments  Payment[]
+  lecturers String?   @db.Text
+
+  leads Lead[]
+
+  monthlyStats BatchMonthlyStats[]
+  timetables   Timetable[]
+
+  tasks Task[]
+
+  targetIndividualGoal Float? @default(40.0)
+  targetGroupGoal      Float? @default(50.0)
+  missedCallTasks      MissedCallTask[]
+}
+
+model Group {
+  id             Int      @id @default(autoincrement())
+  name           String
+  type           Int      @default(1)
+  classType      Int      @default(1)
+  itemOrder      Int      @default(1)
+  discount_rules String?  @db.Text
+  batchId        Int
+  batch          Batch    @relation(fields: [batchId], references: [id])
+  courses        Course[]
+  createdAt      DateTime @default(now())
+
+  payments Payment[]
+}
+
+model Course {
+  id          Int     @id @default(autoincrement())
+  name        String
+  code        String?
+  stream      String?
+  streams     String?
+  description String? @db.Text
+  itemOrder   Int     @default(1)
+  courseType  Int     @default(1)
+  price       Float   @default(0)
+  groupPrices String? @db.Text
+
+  isDiscountExcluded Boolean @default(false)
+  lecturerName       String?
+
+  activeMonths Int?
+  startMonth   String?
+  endMonth     String?
+
+  groupId       Int?
+  group         Group?         @relation(fields: [groupId], references: [id])
+  createdAt     DateTime       @default(now())
+  tuteStocks    TuteStock[]
+  deliveryItems DeliveryItem[]
+
+  webInquiries WebInquiry[]
+}
+
+model Installment {
+  id           Int      @id @default(autoincrement())
+  batchId      Int
+  subjectCount Int
+  details      String   @db.Text
+  createdAt    DateTime @default(now())
+}
+
+model Post {
+  id          Int      @id @default(autoincrement())
+  title       String
+  caption     String   @db.Text
+  image       String?
+  business_id BigInt?
+  batch_id    BigInt?
+  created_at  DateTime @default(now())
+}
+
+model ContentGroup {
+  id                 Int            @id @default(autoincrement())
+  title              String
+  type               Int
+  classType          Int            @default(1)
+  itemOrder          Int            @default(1)
+  batchId            Int
+  additionalBatchIds String?
+  courseCode         String?
+  parentId           Int?
+  parent             ContentGroup?  @relation("SubFolders", fields: [parentId], references: [id], onDelete: Cascade)
+  subFolders         ContentGroup[] @relation("SubFolders")
+  createdAt          DateTime       @default(now())
+  contents           Content[]
+}
+
+model Content {
+  id              Int           @id @default(autoincrement())
+  title           String
+  contentType     String
+  link            String?
+  youtubeLink     String?       @db.Text
+  vimeoLink       String?       @db.Text
+  fileName        String?
+  meetingId       String?
+  thumbnail       String?
+  date            DateTime?
+  startTime       String?
+  endTime         String?
+  paperTime       Int?
+  questionCount   Int?
+  isFree          Boolean       @default(false)
+  contentGroupId  Int?
+  autoDeleteHours Float?
+  reminderSent    Boolean       @default(false)
+  group           ContentGroup? @relation(fields: [contentGroupId], references: [id])
+  batchId         Int
+  additionalBatchIds String?
+  courseId        Int
+  itemOrder       Int           @default(1)
+  createdAt       DateTime      @default(now())
+
+  tasks Task[]
+  paper Paper?
+}
+
+model ContentCourse {
+  id         Int      @id @default(autoincrement())
+  content_id Int
+  course_id  BigInt
+  type       Int
+  itemOrder  String   @default("0")
+  created_at DateTime @default(now())
+  updatedAt DateTime @updatedAt @default(now())
+  fileName   String?
+  thumbnail  String?
+}
+
+model Payment {
+  id            Int     @id @default(autoincrement())
+  amount        Float   @default(0)
+  payment_type  Int     @default(1)
+  method        String? @default("Slip")
+  status        Int     @default(0)
+  slip_image    String?
+  post_pay_days Int?    @default(0)
+
+  due_date       DateTime?
+  installment_no Int       @default(1)
+  valid_until    DateTime?
+
+  created_at DateTime @default(now())
+  updatedAt DateTime @updatedAt @default(now())
+
+  studentId  Int?
+  student    User?     @relation(fields: [studentId], references: [id])
+  businessId Int?
+  business   Business? @relation(fields: [businessId], references: [id])
+  batchId    Int?
+  batch      Batch?    @relation(fields: [batchId], references: [id])
+
+  groupId Int?
+  group   Group? @relation(fields: [groupId], references: [id])
+
+  subjects String? @db.Text
+  remark   String? @db.Text
+
+  actionedById  Int?
+  actionedUser  User?     @relation("ActionedPayments", fields: [actionedById], references: [id])
+  delivery      Delivery?
+  excessAmount  Float     @default(0)
+  arrearsAmount Float     @default(0)
+
+  // AI Verification fields
+  aiVerified   Boolean @default(false)
+  aiConfidence Float?
+
+  bankTransactions BankTransaction[]
+  auditLogs        PaymentAuditLog[]
+
+  @@index([studentId, batchId, status], name: "idx_pay_student_batch")
+  @@index([created_at], name: "idx_pay_created")
+}
+
+model PaymentAuditLog {
+  id           Int      @id @default(autoincrement())
+  paymentId    Int
+  payment      Payment  @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  action       String
+  actionedById Int?
+  actionedUser User?    @relation("PaymentAuditLogs", fields: [actionedById], references: [id], onDelete: SetNull)
+  createdAt    DateTime @default(now())
+}
+
+model BankTransaction {
+  id             Int      @id @default(autoincrement())
+  txnDate        DateTime
+  description    String   @db.Text
+  amount         Float
+  balance        Float?
+  isMatched      Boolean  @default(false)
+  statementMonth String?
+
+  paymentId Int?
+  payment   Payment? @relation(fields: [paymentId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model CrmSettings {
+  id            Int      @id @default(autoincrement())
+  businessId    Int
+  campaignType  String
+  metaApiKey    String?  @db.Text
+  waId          String?
+  waNumId       String?
+  geminiKeys    Json?
+  botMode       String   @default("OFF")
+  openSemActive Boolean  @default(false)
+  batchId       String?
+  welcomeMessageText String? @db.Text
+  btnAllowText       String?
+  btnStopText        String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  businesses Business[]
+}
+
+model AutoReply {
+  id             Int      @id @default(autoincrement())
+  businessId     Int
+  campaignType   String
+  stepOrder      Int
+  message        String   @db.Text
+  attachment     String?
+  attachmentType String?
+  createdAt      DateTime @default(now())
+
+  business Business? @relation(fields: [businessId], references: [id])
+}
+
+model KnowledgeBase {
+  id           Int      @id @default(autoincrement())
+  businessId   Int
+  campaignType String?
+  fileName     String
+  fileUrl      String
+  content      String   @db.Text
+  createdAt    DateTime @default(now())
+}
+
+model Lead {
+  id           Int     @id @default(autoincrement())
+  name         String?
+  phone        String  @unique
+  source       String  @default("whatsapp")
+  campaignType String  @default("FREE_SEMINAR")
+  status       String  @default("NEW")
+  batchId      Int?
+  batch        Batch?  @relation(fields: [batchId], references: [id])
+
+  assignedTo   Int?
+  assignedUser User? @relation("AssignedLeads", fields: [assignedTo], references: [id])
+
+  lastMessage   String?   @db.Text
+  lastMessageAt DateTime?
+  unreadCount   Int       @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  messages ChatMessage[]
+
+  // 🔥 Current / Active Round Info (Legacy / Default) 🔥
+  phase          Int     @default(1)
+  callMethod     String?
+  callStatus     String  @default("pending")
+  callAttempt    Int     @default(1)
+  feedback       String? @db.Text
+  isAutoAssigned Boolean @default(false)
+  isOptedOut     Boolean @default(false)
+
+  // 🔥 Delay Tracking 🔥
+  r1DelayedDays Int @default(0)
+  r2DelayedDays Int @default(0)
+
+  // 🔥 Open Seminar Campaign Specific Status 🔥
+  openSemPhase       Int     @default(1)
+  openSemCallMethod  String?
+  openSemCallStatus  String  @default("pending")
+  openSemCallAttempt Int     @default(1)
+  openSemFeedback    String? @db.Text
+  openSemRound       Int     @default(1)
+
+  // 🔥 New Inquiries Campaign Specific Status 🔥
+  newInqPhase       Int     @default(1)
+  newInqCallMethod  String?
+  newInqCallStatus  String  @default("pending")
+  newInqCallAttempt Int     @default(1)
+  newInqFeedback    String? @db.Text
+  newInqRound       Int     @default(1)
+
+  // 🔥 Paid Campaign Specific Status 🔥
+  paidPhase       Int     @default(1)
+  paidCallMethod  String?
+  paidCallStatus  String  @default("pending")
+  paidCallAttempt Int     @default(1)
+  paidFeedback    String? @db.Text
+  paidRound       Int     @default(1)
+
+  autoReplyStep     Int     @default(0)
+  sequenceCompleted Boolean @default(false)
+  followUpSent      Boolean @default(false)
+
+  paymentIntention String?   @default("NOT_DECIDED")
+  enrollmentStatus String?   @default("NON_ENROLLED")
+  inquiryType      String?   @default("NORMAL")
+  newInqTimestamp  DateTime?
+
+  coordinationRound Int @default(1)
+
+  slaDeadline   DateTime?
+  isLocked      Boolean   @default(false)
+  lastPaidMonth String?
+  isDropped     Boolean   @default(false)
+
+  assignedAt DateTime? // 👈 අලුතෙන් එකතු කරන එක මේක විතරයි! (createdAt එකක් මෙතන ආයේ දාන්න එපා, ඒක උඩ තියෙනවා)
+
+  lastAttemptAt     DateTime?
+  nonEnrolledReason String?   @db.Text
+
+  isCallCenter            Boolean @default(false)
+  callCenterStatus        String  @default("pending")
+  callCenterRequestStatus String? // "REQUESTED", "APPROVED", "REJECTED"
+  callCenterRequestedBy   Int? // Coordinator User ID
+
+  // 🔥 NEW RELATION: To track progress per round independently 🔥
+  roundProgress LeadRoundProgress[]
+  
+  waCallPermissionStatus String  @default("NONE") // NONE, PENDING, ALLOWED, DISALLOWED
+  waCallPermissionRequestedAt DateTime?
+  waCallPermissionExpiry DateTime?
+  waCallPermissionNotified Boolean @default(true)
+
+  callCampaignAuditLogs CallCampaignAuditLog[]
+
+  // 🔥 Block Support 🔥
+  isBlocked     Boolean   @default(false)
+  blockedReason String?
+  blockedAt     DateTime?
+
+  @@index([campaignType, batchId, assignedTo], name: "idx_lead_camp_batch_assign")
+  @@index([campaignType, status, assignedTo], name: "idx_lead_camp_status_assign")
+  @@index([campaignType, inquiryType, assignedTo], name: "idx_lead_camp_inquiry_assign")
+  @@index([campaignType, unreadCount, lastMessageAt], name: "idx_lead_camp_unread_msg")
+  @@index([campaignType, source], name: "idx_lead_camp_source")
+  @@index([openSemRound, assignedAt], name: "idx_lead_opensem_round")
+  @@index([newInqRound, assignedAt], name: "idx_lead_newinq_round")
+  @@index([coordinationRound, assignedAt], name: "idx_lead_coord_round")
+  @@index([updatedAt], name: "idx_lead_updated_at")
+  @@index([lastMessageAt], name: "idx_lead_last_msg_at")
+  @@index([isBlocked], name: "idx_lead_is_blocked")
+}
+
+model BlockedNumber {
+  id            Int      @id @default(autoincrement())
+  phone         String   @unique
+  reason        String?
+  blockedBy     Int?
+  blockedByUser User?    @relation("BlockedByUser", fields: [blockedBy], references: [id])
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([phone])
+}
+
+// 🔥 NEW MODEL: To keep the history and specific data per each round 🔥
+model LeadRoundProgress {
+  id     Int  @id @default(autoincrement())
+  leadId Int
+  lead   Lead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  campaignCategory String  @default("DEFAULT") // OPEN_SEM, NEW_INQ, PAID, DEFAULT
+
+  roundNum    Int     @default(1)
+  phase       Int     @default(1)
+  callMethod  String?
+  callStatus  String  @default("pending")
+  callAttempt Int     @default(1)
+  feedback    String? @db.Text
+  attemptsData String? @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([leadId, roundNum, campaignCategory])
+}
+
+model ChatMessage {
+  id     Int  @id @default(autoincrement())
+  leadId Int
+  lead   Lead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  message   String  @db.Text
+  mediaUrl  String? @db.Text
+  mediaType String?
+
+  direction  String
+  senderType String
+
+  senderId   Int?
+  senderName String? @default("System")
+  senderUser User?   @relation("SentMessages", fields: [senderId], references: [id])
+
+  isRead        Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  metaMessageId String?
+
+  @@index([leadId, createdAt], name: "idx_chat_lead_created")
+  @@index([leadId, isRead], name: "idx_chat_lead_unread")
+}
+
+model AutoAssignQuota {
+  id          Int      @id @default(autoincrement())
+  staffId     Int      @unique
+  staff       User     @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  quotaAmount Int      @default(0)
+  assigned    Int      @default(0)
+  isActive    Boolean  @default(true)
+  updatedAt   DateTime @updatedAt
+}
+
+model WebhookLog {
+  id        Int      @id @default(autoincrement())
+  phone     String
+  waNumId   String?
+  message   String?
+  status    String   @default("PENDING")
+  errorMsg  String?  @db.Text
+  createdAt DateTime @default(now())
+}
+
+model BatchMonthlyStats {
+  id      Int   @id @default(autoincrement())
+  batchId Int
+  batch   Batch @relation(fields: [batchId], references: [id])
+
+  recordMonth String
+
+  totalEnrolled Int @default(0)
+  fullCount     Int @default(0)
+  monthlyCount  Int @default(0)
+  installCount  Int @default(0)
+
+  droppedCount  Int @default(0)
+  upgradedCount Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Hall {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  isAvailable Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  timetables         Timetable[]
+  physicalTimetables PhysicalTimetable[]
+}
+
+model Timetable {
+  id           Int      @id @default(autoincrement())
+  businessId   Int
+  batchId      Int
+  batch        Batch    @relation(fields: [batchId], references: [id])
+  date         DateTime
+  subjectName  String
+  title        String
+  startTime    String
+  endTime      String
+  lecturerName String?
+
+  // Technical Department additions
+  hallId         Int?
+  hall           Hall?   @relation(fields: [hallId], references: [id])
+  liveLink       String? @db.Text
+  techNotes      String? @db.Text
+  deliveryStatus String  @default("PENDING")
+
+  additionalBatchIds String? @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tasks Task[]
+}
+
+model TaskTemplate {
+  id            Int      @id @default(autoincrement())
+  businessId    Int
+  business      Business @relation(fields: [businessId], references: [id])
+  taskType      String
+  isRequired    Boolean  @default(false)
+  deadlineHours Int      @default(24)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([businessId, taskType])
+}
+
+model Task {
+  id         Int      @id @default(autoincrement())
+  businessId Int
+  business   Business @relation(fields: [businessId], references: [id])
+
+  batchId     Int?
+  batch       Batch?     @relation(fields: [batchId], references: [id])
+  timetableId Int?
+  timetable   Timetable? @relation(fields: [timetableId], references: [id], onDelete: Cascade)
+
+  parentId Int?
+  parent   Task?  @relation("SubTasks", fields: [parentId], references: [id], onDelete: Cascade)
+  subTasks Task[] @relation("SubTasks")
+
+  taskType String
+
+  customTitle String?
+  customDesc  String?   @db.Text
+  startDate   DateTime?
+  endDate     DateTime?
+
+  status String @default("PENDING")
+
+  assignedTo   Int?
+  assignedUser User? @relation("AssignedTasks", fields: [assignedTo], references: [id])
+
+  deadline    DateTime?
+  completedAt DateTime?
+
+  unlockReason String? @db.Text
+  isUnlocked   Boolean @default(false)
+  unlockedBy   Int?
+
+  additionalBatchIds String? @db.Text
+
+  contentId Int?
+  content   Content? @relation(fields: [contentId], references: [id])
+
+  proofUrl  String?
+  proofType String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model CustomTaskTemplate {
+  id         Int      @id @default(autoincrement())
+  businessId Int
+  business   Business @relation(fields: [businessId], references: [id])
+
+  title       String
+  description String? @db.Text
+
+  dayOfMonth Int?
+
+  startTime String
+  endTime   String
+
+  allocationType String @default("MANUAL")
+
+  autoAssignTo Int?
+  assignedUser User? @relation("AutoAssignedUser", fields: [autoAssignTo], references: [id])
+
+  subTasks Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model TuteStock {
+  id                Int      @id @default(autoincrement())
+  courseId          Int
+  tuteName          String
+  tuteImage         String?
+  tuteImage2        String?
+  availableQuantity Int      @default(0)
+  itemOrder         Int      @default(1)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  course Course @relation(fields: [courseId], references: [id])
+}
+
+model Delivery {
+  id          Int    @id @default(autoincrement())
+  paymentId   Int    @unique
+  studentId   String
+  businessId  Int
+  paymentType String
+
+  trackingNumber String?
+
+  labelName    String?
+  labelPhone   String?
+  labelAddress String?
+
+  status String @default("Pending")
+
+  holdReason String?
+  holdRemark String?
+  packRemark String?
+
+  packedAt   DateTime?
+  onTheWayAt DateTime?
+  resolvedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  payment Payment        @relation(fields: [paymentId], references: [id])
+  items   DeliveryItem[]
+}
+
+model DeliveryItem {
+  id         Int     @id @default(autoincrement())
+  deliveryId Int
+  courseId   Int
+  tuteName   String
+  tuteImage  String?
+  quantity   Int     @default(1)
+
+  delivery Delivery @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
+  course   Course   @relation(fields: [courseId], references: [id])
+}
+
+model TuteStockHistory {
+  id          Int      @id @default(autoincrement())
+  stockId     Int
+  courseId    Int?
+  tuteName    String
+  action      String
+  oldQuantity Int
+  newQuantity Int
+  reason      String?
+  createdAt   DateTime @default(now())
+}
+
+model AppSetting {
+  id        Int      @id @default(autoincrement())
+  key       String   @unique
+  value     String   @db.LongText
+  updatedAt DateTime @updatedAt
+}
+
+model Reminder {
+  id          Int      @id @default(autoincrement())
+  leadId      Int?
+  agentId     Int // Reminder එක දාපු කෙනාට විතරක් පේන්න
+  leadType    String? // 'NEW_INQ' හෝ 'OPEN_SEMINAR'
+  phone       String? // Redirect වෙන්න ලේසි වෙන්න
+  name        String?
+  round       Int      @default(1)
+  phase       Int      @default(1)
+  remindAt    DateTime // Reminder එක එන්න ඕන වෙලාව
+  note        String?  @db.Text
+  isCompleted Boolean  @default(false)
+  isPersonal  Boolean  @default(false)
+  isRepeat    Boolean  @default(false)
+  repeatTime  String?  // Time in HH:mm format for repeating reminders
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model StaffRoster {
+  id          Int      @id @default(autoincrement())
+  staffId     Int // Coordinator ගේ User ID එක
+  date        DateTime @db.Date
+  status      String   @default("Normal") // Normal, Half Day, Day Off, Poya Day
+  manualCalls Int      @default(0)
+
+  user User @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  @@unique([staffId, date]) // එක දවසකට එක Coordinator කෙනෙක්ට තියෙන්න පුළුවන් එක රෙකෝඩ් එකයි
+}
+
+model UpgradePricing {
+  id             Int      @id @default(autoincrement())
+  batchId        Int
+  courseId       Int?
+  planType       String // "FULL", "INSTALLMENT", or "BUNDLE_DISCOUNT"
+  subjectCount   Int? // For BUNDLE_DISCOUNT (2, 3)
+  installmentNum Int? // Installment index (1, 2, 3)
+  amount         Float
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([batchId, courseId, planType, installmentNum, subjectCount], name: "upgrade_pricing_unique_idx")
+}
+
+model SystemTask {
+  id           Int      @id @default(autoincrement())
+  topic        String
+  description  String   @db.Text
+  images       String?  @db.Text // JSON stringified array of filenames
+  status       String   @default("PENDING") // PENDING, RESOLVED
+  remark       String?  @db.Text
+  staffId      Int?
+  staffName    String
+  department   String?
+  businessName String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model ZoomAccount {
+  id           Int      @id @default(autoincrement())
+  name         String
+  accountId    String
+  clientId     String
+  clientSecret String
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model CoordinatorDailyLog {
+  id              Int      @id @default(autoincrement())
+  coordinatorId   Int
+  date            DateTime
+  newInqCalls     Int      @default(0)
+  generalInqCalls Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  coordinator User @relation(fields: [coordinatorId], references: [id], onDelete: Cascade)
+
+  @@unique([coordinatorId, date])
+}
+
+model PhysicalSchool {
+  id        Int               @id @default(autoincrement())
+  name      String            @unique
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+  students  PhysicalStudent[]
+}
+
+model AppChatMessage {
+  id          Int      @id @default(autoincrement())
+  businessId  Int
+  senderId    Int
+  sender      User     @relation(fields: [senderId], references: [id])
+  message     String   @db.Text
+  isDeleted   Boolean  @default(false)
+  deletedByAI Boolean  @default(false)
+  isPinned    Boolean  @default(false)
+  isEdited    Boolean  @default(false)
+  metadata    Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model BusinessChatSetting {
+  businessId  Int     @id
+  isLocked    Boolean @default(false)
+}
+
+model PhysicalStudent {
+  id          Int     @id @default(autoincrement())
+  studentId   String  @unique
+  studentName String?
+  firstName   String?
+  lastName    String?
+  grade       String?
+  nic         String?
+  phone       String?
+  whatsapp    String?
+  address     String? @db.Text
+  gender      String?
+  dob         String?
+  rfid        String? @unique
+  cardType    String? @default("FULL") // "FULL", "HALF", "FREE"
+
+  registrationFeeAmount Float?
+  registrationFeeStatus String @default("PENDING") // "PAID" or "PENDING"
+
+  schoolId Int?
+  school   PhysicalSchool? @relation(fields: [schoolId], references: [id])
+
+  classId Int?
+  class   PhysicalClass? @relation(fields: [classId], references: [id])
+
+  guardianName     String?
+  guardianPhone    String?
+  guardianWhatsapp String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  attendances PhysicalAttendance[]
+  enrollments PhysicalStudentClassEnrollment[]
+  transactions PhysicalTransaction[]
+  feePayments  PhysicalClassFeePayment[]
+}
+
+model PhysicalAttendance {
+  id        Int              @id @default(autoincrement())
+  studentId Int
+  student   PhysicalStudent  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  classId   Int?
+  class     PhysicalClass?   @relation(fields: [classId], references: [id], onDelete: Cascade)
+  date      DateTime         @db.Date
+  status    String           @default("PRESENT")
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  @@unique([studentId, classId, date])
+}
+
+model PhysicalStudentClassEnrollment {
+  id        Int             @id @default(autoincrement())
+  studentId Int
+  student   PhysicalStudent @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  classId   Int
+  class     PhysicalClass   @relation(fields: [classId], references: [id], onDelete: Cascade)
+  cardType  String?         @default("FULL") // "FULL", "HALF", "FREE"
+  createdAt DateTime        @default(now())
+
+  @@unique([studentId, classId])
+}
+
+model PhysicalClass {
+  id          Int               @id @default(autoincrement())
+  name        String
+  grade       String
+  stream      String?
+  subject     String?
+  monthlyFee  Float?            @default(0)
+  startMonth  String?
+  activeMonths Json?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  teachers    PhysicalTeacher[]
+  students    PhysicalStudent[]
+  enrollments PhysicalStudentClassEnrollment[]
+  attendances PhysicalAttendance[]
+  timetables  PhysicalTimetable[]
+  feePayments PhysicalClassFeePayment[]
+}
+
+model PhysicalClassFeePayment {
+  id            Int             @id @default(autoincrement())
+  studentId     Int
+  student       PhysicalStudent @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  classId       Int
+  class         PhysicalClass   @relation(fields: [classId], references: [id], onDelete: Cascade)
+  month         String          // Format: "YYYY-MM" (e.g. "2025-01", "2025-02")
+  amount        Float           @default(0)
+  status        String          @default("PAID") // "PAID", "PENDING", "FREE_CARD", "HALF_PAYMENT"
+  paidDate      DateTime        @default(now())
+  paymentMethod String?         @default("CASH") // "CASH", "CARD", "BANK_TRANSFER"
+  remark        String?         @db.Text
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  @@unique([studentId, classId, month])
+  @@index([classId, month])
+  @@index([studentId])
+}
+
+model PhysicalTeacher {
+  id         Int     @id @default(autoincrement())
+  lecturerId String? @unique
+  name       String
+  image      String? @db.Text
+  address  String? @db.Text
+  whatsapp String?
+  phone    String?
+
+  classes PhysicalClass[]
+
+  instituteCut Float? @default(0)
+
+  timetables PhysicalTimetable[]
+  transactions PhysicalTransaction[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model PhysicalTimetable {
+  id        Int    @id @default(autoincrement())
+  dayOfWeek String
+  startTime String
+  endTime   String
+
+  hallId    Int?
+  hall      Hall?  @relation(fields: [hallId], references: [id])
+  hallName  String?
+
+  teacherId Int?
+  teacher   PhysicalTeacher? @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+
+  classId   Int?
+  class     PhysicalClass?  @relation(fields: [classId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Note {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  title     String?
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model QuickReply {
+  id         Int      @id @default(autoincrement())
+  userId     Int
+  name       String   @db.VarChar(255)
+  message    String?  @db.Text
+  attachment String?  @db.LongText
+  createdAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model AiVerificationHistory {
+  id          Int      @id @default(autoincrement())
+  date        String
+  time        String
+  businessId  String?
+  batchId     String?
+  processed   Int      @default(0)
+  success     Int      @default(0)
+  failed      Int      @default(0)
+  createdAt   DateTime @default(now())
+}
+
+model WebInquiry {
+  id             Int      @id @default(autoincrement())
+  studentId      Int?
+  student        User?    @relation("StudentWebInquiries", fields: [studentId], references: [id])
+  name           String?
+  phone          String?
+  optionalPhone  String?
+  
+  businessId     Int
+  business       Business @relation(fields: [businessId], references: [id])
+  
+  courseId       Int?
+  course         Course?  @relation(fields: [courseId], references: [id])
+  
+  status         String   @default("OPEN") // OPEN, RESOLVED
+  assignedTo     Int?
+  assignedUser   User?    @relation("AssignedWebInquiries", fields: [assignedTo], references: [id])
+  
+  unreadCount    Int      @default(0)
+  studentUnreadCount Int  @default(0)
+  lastMessage    String?  @db.Text
+  lastMessageAt  DateTime @default(now())
+  
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  
+  messages       WebInquiryMessage[]
+
+  @@index([businessId, status, assignedTo], name: "idx_webinq_biz_status")
+}
+
+model WebInquiryMessage {
+  id           Int      @id @default(autoincrement())
+  inquiryId    Int
+  inquiry      WebInquiry @relation(fields: [inquiryId], references: [id], onDelete: Cascade)
+  
+  message      String   @db.Text
+  mediaUrl     String?  @db.Text
+  mediaType    String?
+  
+  direction    String   // 'inbound' (from student) or 'outbound' (from staff)
+  senderType   String   // 'USER', 'SYSTEM'
+  
+  senderId     Int?     // Staff ID if outbound, Student ID if inbound
+  senderUser   User?    @relation("SentWebInquiryMessages", fields: [senderId], references: [id])
+  senderName   String?
+  
+  replyToId    Int?
+  replyTo      WebInquiryMessage? @relation("ReplyTo", fields: [replyToId], references: [id])
+  replies      WebInquiryMessage[] @relation("ReplyTo")
+  
+  reactions    Json?
+  
+  isRead       Boolean  @default(false)
+  createdAt    DateTime @default(now())
+}
+
+model WhatsAppCallRecord {
+  id           String   @id @default(uuid())
+  callId       String?  @unique
+  agentId      Int?
+  agent        User?    @relation("AgentCallRecords", fields: [agentId], references: [id])
+  leadPhone    String
+  direction    String
+  status       String   // COMPLETED, MISSED, REJECTED, NO_ANSWER, PASSED
+  duration     Int      @default(0)
+  recordingUrl String?
+
+  poolSnapshot Json?
+
+  isNewInquiry Boolean  @default(false)
+  passedByUserId Int?
+  passedByUser User?    @relation("PassedCallRecords", fields: [passedByUserId], references: [id])
+  passReason   String?  @db.Text
+  
+  businessId   Int?
+  business     Business? @relation(fields: [businessId], references: [id])
+  
+  campaignType String?
+
+  // AI Details
+  aiTone             String?
+  aiMood             String?
+  aiSummary          String?  @db.Text
+  aiSummarySinhala   String?  @db.Text
+  aiNotes            String?  @db.Text
+  transcription      String?  @db.Text
+  aiVibe             String?
+  aiIsGoodCall       Boolean?
+  aiStudentQuestions String?  @db.Text
+  aiFullAnalysis     String?  @db.Text
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([agentId, createdAt], name: "idx_wacall_agent_created")
+  @@index([businessId, createdAt], name: "idx_wacall_biz_created")
+}
+
+model SystemAuditLog {
+  id         Int      @id @default(autoincrement())
+  userId     Int?
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  role       String?
+  method     String
+  endpoint   String   @db.Text
+  payload    Json?
+  ipAddress  String?
+  statusCode Int
+  createdAt  DateTime @default(now())
+}
+
+model WhatsAppAlert {
+  id          Int      @id @default(autoincrement())
+  alertType   String   // 'account_update', 'account_alerts', 'phone_number_quality_update', 'business_status_update'
+  message     String?  @db.Text
+  payload     Json?
+  status      String   @default("UNREAD") // 'UNREAD', 'READ', 'RESOLVED'
+  createdAt   DateTime @default(now())
+}
+
+model WhatsAppBillingRecord {
+  id                 Int       @id @default(autoincrement())
+  businessId         Int?
+  business           Business? @relation(fields: [businessId], references: [id], onDelete: SetNull)
+  wabaId             String?
+  phoneNumberId      String?
+  displayPhoneNumber String?
+  recipient          String?
+  wamid              String    @unique
+  conversationId     String?
+  category           String    // 'MARKETING', 'UTILITY', 'AUTHENTICATION', 'SERVICE'
+  pricingModel       String?   @default("PMP") // 'PMP' (Per-Message) or 'CBP' (Conversation-Based)
+  pricingType        String?   // 'regular', 'free_tier', 'free_entry_point'
+  costUsd            Float     @default(0.0)
+  billable           Boolean   @default(true)
+  status             String?   // 'sent', 'delivered', 'read', 'failed'
+  eventTimestamp     DateTime  @default(now())
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@index([businessId, createdAt], name: "idx_wabill_biz_created")
+  @@index([category, createdAt], name: "idx_wabill_cat_created")
+  @@index([phoneNumberId, createdAt], name: "idx_wabill_phone_created")
+  @@index([conversationId], name: "idx_wabill_conv")
+  @@index([createdAt], name: "idx_wabill_created")
+}
+
+model CallCampaignAuditLog {
+  id               Int      @id @default(autoincrement())
+  leadId           Int
+  lead             Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  
+  campaignCategory String   // "OPEN_SEMINAR", "NEW_INQ", "PAID_CAMPAIGN"
+  actionType       String   // "ASSIGNED", "STATUS_UPDATED", "CALL_ATTEMPTED", "RESET"
+  
+  oldStatus        String?  
+  newStatus        String?  
+  
+  callAttempt      Int?
+  remarks          String?  @db.Text
+  
+  actionedById     Int?
+  actionedUser     User?    @relation("ActionedCallCampaignLogs", fields: [actionedById], references: [id])
+  
+  createdAt        DateTime @default(now())
+}
+
+model SocialMediaCalendarPost {
+  id            Int      @id @default(autoincrement())
+  title         String
+  description   String?  @db.Text
+  imageUrl      String?  @db.Text
+  scheduledDate DateTime
+  createdById   Int?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model SocialMediaTask {
+  id                      Int       @id @default(autoincrement())
+  title                   String
+  description             String?   @db.Text
+  businessId              Int?
+  businessName            String?
+  requestedById           Int
+  requestedByName         String
+  assignedToId            Int?
+  assignedToName          String?
+  dueDate                 DateTime?
+  attachmentUrl           String?   @db.Text
+  taskType                String    @default("POST") // "POST" or "VIDEO"
+  status                  String    @default("PENDING_APPROVAL")
+  
+  // Stages & Audit Timestamps
+  requestDate             DateTime  @default(now())
+  assignedDate            DateTime?
+  startedDate             DateTime?
+  finishedDate            DateTime?
+  completedDate           DateTime?
+  correctionRequestedDate DateTime?
+  correctionCompletedDate DateTime?
+  correctionNote          String?   @db.Text
+  
+  // Full Audit Log Timeline Array
+  history                 Json?
+  
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+}
+
+model PhysicalTransaction {
+  id          Int              @id @default(autoincrement())
+  type        String           // "INCOME" or "EXPENSE"
+  category    String           // "REGISTRATION", "UTILITY", "SUPPLIES", "REFUND", "OTHER" or custom category name
+  amount      Float
+  description String?          @db.Text
+  date        DateTime         @default(now())
+  
+  studentId   Int?
+  student     PhysicalStudent? @relation(fields: [studentId], references: [id], onDelete: SetNull)
+
+  teacherId       Int?
+  teacher         PhysicalTeacher? @relation(fields: [teacherId], references: [id], onDelete: SetNull)
+  billingMonth    String?          // e.g. "2026-10" to link deduction to specific teacher billing month
+  isTeacherAdvance Boolean         @default(false)
+
+  paymentMethod   String?          @default("CASH")
+  affectsCash     Boolean          @default(true)
+  status          String?          @default("COMPLETED")
+  installmentPlanId String?
+  installmentNo   Int?
+  totalInstallments Int?
+  dueDate         DateTime?
+  isVerified      Boolean          @default(true)
+  verifiedAt      DateTime?
+  verifiedBy      String?
+
+  isDeleted   Boolean          @default(false)
+  deletedReason String?        @db.Text
+  deletedAt   DateTime?
+  deletedBy   String?
+
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+}
+
+model PhysicalFinanceCategory {
+  id                 Int      @id @default(autoincrement())
+  name               String
+  type               String   // "INCOME" or "EXPENSE"
+  isLecturerCategory Boolean  @default(false)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@unique([name, type])
+}
+
+model PhysicalDailyOpeningBalance {
+  id        Int      @id @default(autoincrement())
+  date      String   @unique // format "YYYY-MM-DD"
+  amount    Float
+  note      String?  @db.Text
+  setBy     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model PhysicalCrmSetting {
+  id                     Int      @id @default(autoincrement())
+  esmsApiUrl             String?  @default("https://esms.mobitel.lk/esms/sendsms.php")
+  esmsUsername           String?
+  esmsPassword           String?
+  esmsSenderId           String?  @default("IMACAMPUS")
+  isAttendanceSmsEnabled Boolean  @default(false)
+  attendanceSmsTemplate  String?  @default("Dear Parent, {student_name} ({student_id}) has attended {class_name} class on {date} at {time}. - IMA Campus")
+  isFeePaymentSmsEnabled Boolean  @default(true)
+  feePaymentSmsTemplate  String?  @db.VarChar(500) @default("Dear Parent, Payment of Rs. {amount} for {student_name} ({student_id}) has been received for {class_details} ({month}) on {date} at {time}. {receipt_ref} - IMA Campus")
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+}
+
+model PhysicalSmsLog {
+  id             Int      @id @default(autoincrement())
+  studentId      Int?
+  classId        Int?
+  phone          String
+  guardianName   String?
+  studentName    String?
+  message        String   @db.Text
+  type           String   @default("ATTENDANCE") // "ATTENDANCE", "BULK", "FEE_REMINDER"
+  status         String   @default("SENT")       // "SENT", "FAILED"
+  gatewayResponse String? @db.Text
+  createdAt      DateTime @default(now())
+
+  @@index([studentId])
+  @@index([classId])
+  @@index([createdAt])
+}
+
+model Paper {
+  id                        Int               @id @default(autoincrement())
+  contentId                 Int               @unique
+  content                   Content           @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  paperType                 String            @default("MCQ") // "MCQ", "STRUCTURED", or "BOTH"
+  timerMode                 String            @default("FLEXIBLE") // "SCHEDULED" or "FLEXIBLE"
+  scheduledStartTime        DateTime?
+  mcqTimerMode              String            @default("FLEXIBLE") // "SCHEDULED" or "FLEXIBLE"
+  mcqScheduledStartTime     DateTime?
+  structuredTimerMode       String            @default("FLEXIBLE") // "SCHEDULED" or "FLEXIBLE"
+  structuredScheduledStartTime DateTime?
+  breakIntervalMinutes      Int?              @default(15)
+  structuredUploadMinutes   Int?              @default(15)
+  durationMinutes           Int               @default(60)
+  mcqDurationMinutes        Int?              @default(30)
+  structuredDurationMinutes Int?              @default(60)
+  totalMarks                Float?            @default(100)
+  totalMcqMarks             Float?            @default(50)
+  totalStructuredMarks      Float?            @default(50)
+  passMarks                 Float?            @default(40)
+  instructions              String?           @db.Text
+  gradingScale              String?           @db.Text
+  mcqPaperFile              String?
+  structuredPaperFile       String?
+  category                  String            @default("WEEKLY") // "WEEKLY" or "MONTHLY"
+  hasLeaderboard            Boolean           @default(true)
+  manualParticipantCount    Int?              // Staff-entered participant count
+  createdAt                 DateTime          @default(now())
+  updatedAt                 DateTime          @updatedAt
+
+  questions                 PaperQuestion[]
+  submissions               PaperSubmission[]
+}
+
+model PaperQuestion {
+  id           Int                     @id @default(autoincrement())
+  paperId      Int
+  paper        Paper                   @relation(fields: [paperId], references: [id], onDelete: Cascade)
+  questionNo   Int
+  questionText String                  @db.Text
+  image        String?                 @db.Text
+  marks        Float                   @default(1.0)
+  createdAt    DateTime                @default(now())
+
+  options      PaperOption[]
+  answers      PaperSubmissionAnswer[]
+}
+
+model PaperOption {
+  id         Int                     @id @default(autoincrement())
+  questionId Int
+  question   PaperQuestion           @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  optionNo   Int                     // 1, 2, 3, 4, 5
+  optionText String                  @db.Text
+  isCorrect  Boolean                 @default(false)
+
+  answers    PaperSubmissionAnswer[]
+}
+
+model PaperSubmission {
+  id                    Int                     @id @default(autoincrement())
+  paperId               Int
+  paper                 Paper                   @relation(fields: [paperId], references: [id], onDelete: Cascade)
+  studentId             Int
+  student               User                    @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  startedAt             DateTime                @default(now())
+  submittedAt           DateTime?
+  mcqSubmittedAt        DateTime?
+  structuredStartedAt   DateTime?
+  structuredSubmittedAt DateTime?
+  isUploadLocked        Boolean                 @default(false)
+  status                String                  @default("IN_PROGRESS") // "IN_PROGRESS", "SUBMITTED", "PENDING_EVALUATION", "GRADED"
+  score                 Float?                  @default(0)
+  mcqScore              Float?                  @default(0)
+  structuredScore       Float?                  @default(0)
+  totalQuestions        Int?                    @default(0)
+  correctAnswers        Int?                    @default(0)
+  answerFile            String?                 // For structured paper (PDF upload)
+  answerImages          String?                 @db.Text // JSON array of uploaded image filenames for structured paper
+  teacherFeedback       String?                 @db.Text
+  gradedBy              Int?                    // User ID of the Paper Marker / Lecturer
+  gradedAt              DateTime?
+  createdAt             DateTime                @default(now())
+  updatedAt             DateTime                @updatedAt
+
+  answers         PaperSubmissionAnswer[]
+
+  @@unique([paperId, studentId])
+}
+
+model PaperSubmissionAnswer {
+  id               Int             @id @default(autoincrement())
+  submissionId     Int
+  submission       PaperSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  questionId       Int
+  question         PaperQuestion   @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  selectedOptionId Int?
+  selectedOption   PaperOption?    @relation(fields: [selectedOptionId], references: [id], onDelete: SetNull)
+  isCorrect        Boolean         @default(false)
+}
+
+// ==========================================
+// 🔥 IMA PUSTHAKALAYA (E-LIBRARY & PAST PAPER VAULT) 🔥
+// ==========================================
+
+model LibraryCategory {
+  id          Int               @id @default(autoincrement())
+  name        String            // e.g. "G.C.E. A/L (උසස් පෙළ)", "G.C.E. O/L (සාමාන්‍ය පෙළ)", "Primary (ප්‍රාථමික)"
+  code        String            @unique // e.g. "AL", "OL", "PRIMARY"
+  description String?           @db.Text
+  sortOrder   Int               @default(0)
+  isActive    Boolean           @default(true)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  grades      LibraryGrade[]
+  streams     LibraryStream[]
+  subjects    LibrarySubject[]
+  resources   LibraryResource[]
+}
+
+model LibraryGrade {
+  id          Int               @id @default(autoincrement())
+  name        String            // e.g. "Grade 12", "Grade 13", "Grade 11", "Grade 5"
+  gradeNumber Int?              // 1 to 13
+  categoryId  Int?
+  category    LibraryCategory?  @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  sortOrder   Int               @default(0)
+  isActive    Boolean           @default(true)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  subjects    LibrarySubject[]
+  resources   LibraryResource[]
+}
+
+model LibraryStream {
+  id          Int               @id @default(autoincrement())
+  name        String            // e.g. "Physical Science / Maths", "Biological Science", "Commerce", "Arts", "Technology"
+  code        String?           // e.g. "MATHS", "BIO", "COMMERCE", "ARTS", "TECH"
+  description String?           @db.Text
+  categoryId  Int?
+  category    LibraryCategory?  @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  sortOrder   Int               @default(0)
+  isActive    Boolean           @default(true)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  subjects    LibrarySubject[]
+  resources   LibraryResource[]
+}
+
+model LibrarySubject {
+  id          Int               @id @default(autoincrement())
+  name        String            // e.g. "Combined Mathematics", "Physics", "Chemistry", "Biology", "Accounting", "Media"
+  code        String?           // e.g. "CMATHS", "PHYSICS"
+  categoryId  Int?
+  category    LibraryCategory?  @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  streamId    Int?
+  stream      LibraryStream?    @relation(fields: [streamId], references: [id], onDelete: SetNull)
+  gradeId     Int?
+  grade       LibraryGrade?     @relation(fields: [gradeId], references: [id], onDelete: SetNull)
+  sortOrder   Int               @default(0)
+  isActive    Boolean           @default(true)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  resources   LibraryResource[]
+}
+
+model LibraryResource {
+  id                Int               @id @default(autoincrement())
+  title             String            // e.g. "2027 A/L Combined Maths Model Paper 01 + Scheme"
+  description       String?           @db.Text
+  fileUrl           String            // Path or URL to PDF file (e.g. "/uploads/library/1788...pdf")
+  fileName          String?
+  fileSize          String?           // e.g. "2.4 MB"
+  fileType          String            @default("PDF") // PDF, DOCX, etc.
+  resourceType      String            @default("PAST_PAPER") // PAST_PAPER, MODEL_PAPER, TEACHERS_GUIDE, SHORT_NOTE, TERM_TEST
+  year              String?           // e.g. "2027", "2026", "2025"
+  term              String?           // e.g. "1st Term", "2nd Term", "3rd Term", "Final"
+  medium            String            @default("SINHALA") // SINHALA, ENGLISH, TAMIL
+  hasMarkingScheme  Boolean           @default(false)
+  markingSchemeUrl  String?
+  tags              String?           // comma-separated keywords
+  downloadCount     Int               @default(0)
+  viewCount         Int               @default(0)
+  isFeatured        Boolean           @default(false)
+  isPublished       Boolean           @default(true)
+
+  categoryId        Int?
+  category          LibraryCategory?  @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  gradeId           Int?
+  grade             LibraryGrade?     @relation(fields: [gradeId], references: [id], onDelete: SetNull)
+  streamId          Int?
+  stream            LibraryStream?    @relation(fields: [streamId], references: [id], onDelete: SetNull)
+  subjectId         Int?
+  subject           LibrarySubject?   @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+
+  createdById       Int?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+}
+
+model MissedCallTask {
+  id                    Int       @id @default(autoincrement())
+  callLogId             String?
+  phone                 String
+  studentName           String?
+  businessId            Int
+  business              Business  @relation(fields: [businessId], references: [id])
+  batchId               Int?
+  batch                 Batch?    @relation(fields: [batchId], references: [id])
+  callTime              DateTime
+  source                String    @default("CRM") // FREE_SEMINAR, AFTER_SEMINAR, GENERAL
+  
+  // Read-only reference to who owns the lead currently in CRM
+  existingLeadId        Int?
+  existingAssigneeId    Int?
+  existingAssigneeName  String?
+
+  // Task Assignment (Isolated from Lead table)
+  taskAssigneeId        Int?
+  taskAssignee          User?     @relation("MissedCallTaskAssignee", fields: [taskAssigneeId], references: [id])
+  assignedByManagerId   Int?
+  assignedByManager     User?     @relation("MissedCallTaskAssignedBy", fields: [assignedByManagerId], references: [id])
+  assignedAt            DateTime?
+
+  taskDate              String    // Format: YYYY-MM-DD (e.g., 2026-09-08)
+  status                String    @default("PENDING_DISTRIBUTION") // PENDING_DISTRIBUTION, ASSIGNED, COMPLETED, RESOLVED
+
+  // Staff Follow-up Results
+  callOutcome           String?   // PENDING, ANSWERED, NO_ANSWER, REJECTED, CALL_AGAIN
+  callAttempts          Int       @default(0)
+  remarks               String?   @db.Text
+  lastAttemptAt         DateTime?
+  completedAt           DateTime?
+
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([businessId, taskDate])
+  @@index([taskAssigneeId, status])
+  @@index([phone])
+}
+
+model WhatsappRotator {
+  id          Int      @id @default(autoincrement())
+  campaign    String   @default("default") // Campaign identifier (e.g. "default", "commerce", "batch2026")
+  name        String   // Display name, e.g. "Community 01"
+  inviteUrl   String   @db.Text // https://chat.whatsapp.com/...
+  clickCount  Int      @default(0) // Total scan/redirect counter
+  maxLimit    Int      @default(1020) // Auto-switch limit (WhatsApp group threshold)
+  isActive    Boolean  @default(true) // Whether this link is currently accepting users
+  orderIndex  Int      @default(1) // Priority order (1 -> 2 -> 3...)
+  notes       String?  @db.Text
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([campaign, isActive, orderIndex])
+}
+
+// ==========================================
+// PETTY CASH MANAGEMENT SYSTEM MODELS
+// ==========================================
+
+model PettyCashAccount {
+  id                  Int      @id @default(autoincrement())
+  businessId          Int      @unique
+  business            Business @relation(fields: [businessId], references: [id])
+  fundLimit           Float    @default(50000.0) // Max allocated petty cash fund limit
+  currentBalance      Float    @default(0.0)     // Actual available petty cash balance
+  minBalanceThreshold Float    @default(10000.0) // Minimum threshold triggering reload warning
+  status              String   @default("ACTIVE") // ACTIVE, SUSPENDED
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  transactions        PettyCashTransaction[]
+  reloads             PettyCashReload[]
+
+  @@index([businessId, status])
+}
+
+model PettyCashTransaction {
+  id                    Int               @id @default(autoincrement())
+  transactionNo         String            @unique // Unique ID: e.g. PCT-2026-0001
+  
+  businessId            Int
+  business              Business          @relation(fields: [businessId], references: [id])
+  accountId             Int
+  account               PettyCashAccount  @relation(fields: [accountId], references: [id])
+  
+  requesterId           Int
+  requester             User              @relation("PettyCashRequester", fields: [requesterId], references: [id])
+
+  status                String            @default("PENDING_APPROVAL") 
+  // PENDING_APPROVAL, APPROVED, REJECTED, RETURNED_FOR_CHANGES, CASH_ISSUED, CASH_RECEIVED, RECEIPT_SUBMITTED, RETURNED_FOR_CORRECTION, VERIFIED, SETTLED
+
+  // 1. Request Details
+  category              String            // OFFICE_SUPPLIES, REFRESHMENTS, TRAVEL, REPAIRS, MARKETING, UTILITIES, OTHER
+  requestedAmount       Float
+  purpose               String            @db.Text
+  requiredDate          DateTime
+  additionalNotes       String?           @db.Text
+  requestSlipNo         String?           // e.g. REQ-ESLIP-0001
+  requestedAt           DateTime          @default(now())
+
+  // 2. Admin Manager Approval Details
+  adminManagerId        Int?
+  adminManager          User?             @relation("PettyCashAdminManager", fields: [adminManagerId], references: [id])
+  approvedAmount        Float?
+  approvalComments      String?           @db.Text
+  rejectionReason       String?           @db.Text
+  returnForChangesNote  String?           @db.Text
+  approvalSlipNo        String?           // e.g. APP-ESLIP-0001
+  approvedAt            DateTime?
+
+  // 3. Cash Issue Details
+  issuedByOfficerId     Int?
+  issuedByOfficer       User?             @relation("PettyCashIssuedBy", fields: [issuedByOfficerId], references: [id])
+  cashIssuedAmount      Float?
+  cashIssueSlipNo       String?           // e.g. ISS-ESLIP-0001
+  cashIssuedAt          DateTime?
+  
+  // Digital Confirmation of Cash Received by Manager
+  cashReceivedConfirmed Boolean           @default(false)
+  cashReceivedAt         DateTime?
+
+  // 4. Expense & Mandatory Receipt Details
+  actualSpentAmount     Float?
+  cashReturnedAmount    Float?            @default(0.0) // Difference: cashIssuedAmount - actualSpentAmount
+  receiptNo             String?
+  vendorName            String?
+  expenseDate           DateTime?
+  expenseDescription    String?           @db.Text
+  receiptAttachment     String?           // Path to uploaded receipt/invoice file
+  receiptSubmittedAt    DateTime?
+
+  // 5. Receipt Verification & Settlement Details
+  verifiedByOfficerId   Int?
+  verifiedByOfficer     User?             @relation("PettyCashVerifiedBy", fields: [verifiedByOfficerId], references: [id])
+  verificationComments  String?           @db.Text
+  returnCorrectionNote  String?           @db.Text
+  verifiedAt            DateTime?
+  finalSettlementSlipNo String?           // e.g. SET-ESLIP-0001
+  settledAt             DateTime?
+
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+
+  auditLogs             PettyCashAuditLog[]
+
+  @@index([businessId, status])
+  @@index([requesterId, status])
+  @@index([status])
+}
+
+model PettyCashReload {
+  id               Int              @id @default(autoincrement())
+  reloadNo         String           @unique // e.g. PCR-2026-0001
+  businessId       Int
+  business         Business         @relation(fields: [businessId], references: [id])
+  accountId        Int
+  account          PettyCashAccount @relation(fields: [accountId], references: [id])
+  amount           Float
+  previousBalance  Float
+  newBalance       Float
+  performedById    Int
+  performedBy      User             @relation("PettyCashReloadPerformedBy", fields: [performedById], references: [id])
+  notes            String?          @db.Text
+  createdAt        DateTime         @default(now())
+
+  @@index([businessId])
+  @@index([accountId])
+}
+
+model PettyCashAuditLog {
+  id             Int                   @id @default(autoincrement())
+  transactionId  Int?
+  transaction    PettyCashTransaction? @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  userId         Int?
+  user           User?                 @relation("PettyCashAuditUser", fields: [userId], references: [id])
+  userName       String
+  userRole       String
+  action         String                // REQUEST_CREATED, REQUEST_APPROVED, REQUEST_REJECTED, REQUEST_RETURNED, CASH_ISSUED, CASH_CONFIRMED, RECEIPT_SUBMITTED, RECEIPT_RETURNED, RECEIPT_VERIFIED, TRANSACTION_SETTLED, FUND_RELOADED
+  previousStatus String?
+  newStatus      String?
+  comments       String?               @db.Text
+  createdAt      DateTime              @default(now())
+
+  @@index([transactionId])
+  @@index([userId])
+  @@index([action])
+}

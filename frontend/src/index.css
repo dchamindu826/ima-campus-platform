@@ -1,0 +1,606 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Hanken+Grotesk:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Sora:wght@500;600;700&family=Noto+Sans+Sinhala:wght@400;500;600;700&display=swap');
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+/* 🔥 FIX: Tailwind v4 Class-based Dark Mode 🔥 */
+@variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --color-brand-accent: var(--theme-color);
+  --color-brand-accentHover: var(--theme-hover);
+  --color-brand-accentLight: var(--theme-light);
+  --color-brand-darkBg: #090E17;
+  --color-brand-darkCard: #111827;
+  --color-brand-darkBorder: rgba(255, 255, 255, 0.08);
+  --color-brand-darkHover: #1F2937;
+  --color-brand-darkTextMuted: #94A3B8;
+  --font-sans: 'Plus Jakarta Sans', 'Inter', sans-serif;
+  --font-outfit: 'Outfit', sans-serif;
+}
+
+.font-outfit {
+  font-family: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+}
+
+.font-jakarta {
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+}
+
+.font-numeric {
+  font-family: 'Outfit', 'Plus Jakarta Sans', -apple-system, sans-serif !important;
+  font-feature-settings: "tnum" 1, "cv05" 1;
+}
+
+:root {
+  --theme-color: #E11D48;
+  --theme-hover: #BE123C;
+  --theme-light: rgba(225, 29, 72, 0.1);
+}
+
+body {
+  font-family: 'Inter', sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  margin: 0;
+  -webkit-font-smoothing: antialiased;
+  background-color: #000;
+}
+
+/* Custom Scrollbars */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 10px;
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Zero-lag theme transition lock to guarantee instant 60fps dark/light toggle */
+.no-transitions,
+.no-transitions *,
+.no-transitions *::before,
+.no-transitions *::after {
+  transition: none !important;
+}
+
+/* Modal fix */
+.modal-content,
+[role="dialog"]>div {
+  max-height: 90vh !important;
+  overflow-y: auto !important;
+}
+
+/* ==========================================================
+   ✨ CUSTOM ANIMATIONS FOR BACKGROUND THEMES ✨
+   ========================================================== */
+
+/* 1. Aurora Background Animation */
+@keyframes gradientMove {
+  0% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.bg-anim-aurora {
+  background: linear-gradient(-45deg, #0f2027, #203a43, #2c5364, #121212);
+  background-size: 400% 400%;
+  animation: gradientMove 15s ease infinite;
+}
+
+/* 2. Galaxy Stars Background Animation (🔥 UPDATED to Deep Navy Blue 🔥) */
+@keyframes moveStars {
+  from {
+    background-position: 0 0;
+  }
+
+  to {
+    background-position: -10000px 5000px;
+  }
+}
+
+.bg-anim-stars {
+  /* වෙනස් කලේ මෙතන: තද කළු (#050505) අයින් කරලා ලස්සන Deep Space Blue (#0B101E) දැම්මා */
+  background-color: #0B101E;
+  background-image:
+    radial-gradient(white, rgba(255, 255, 255, .2) 2px, transparent 4px),
+    radial-gradient(white, rgba(255, 255, 255, .15) 1px, transparent 30px),
+    radial-gradient(white, rgba(255, 255, 255, .1) 2px, transparent 40px);
+  background-size: 550px 550px, 350px 350px, 250px 250px;
+  background-position: 0 0, 40px 60px, 130px 270px;
+  animation: moveStars 200s linear infinite;
+}
+
+/* කලින් තිබ්බ index.css එකේ පහලට මේ ටික එකතු කරන්න */
+
+@keyframes float-ball-1 {
+  0% {
+    transform: translate(0, 0);
+  }
+
+  33% {
+    transform: translate(100vw, 50vh);
+  }
+
+  66% {
+    transform: translate(50vw, 100vh);
+  }
+
+  100% {
+    transform: translate(0, 0);
+  }
+}
+
+@keyframes float-ball-2 {
+  0% {
+    transform: translate(100vw, 0);
+  }
+
+  33% {
+    transform: translate(0, 100vh);
+  }
+
+  66% {
+    transform: translate(50vw, 0);
+  }
+
+  100% {
+    transform: translate(100vw, 0);
+  }
+}
+
+@keyframes float-ball-3 {
+  0% {
+    transform: translate(50vw, 100vh);
+  }
+
+  33% {
+    transform: translate(100vw, 0);
+  }
+
+  66% {
+    transform: translate(0, 50vh);
+  }
+
+  100% {
+    transform: translate(50vw, 100vh);
+  }
+}
+
+.animate-float-ball-1 {
+  animation: float-ball-1 25s linear infinite;
+}
+
+.animate-float-ball-2 {
+  animation: float-ball-2 30s linear infinite;
+}
+
+.animate-float-ball-3 {
+  animation: float-ball-3 35s linear infinite;
+}
+
+/* ==========================================================
+   🌈 NEW: SLOW COLOR SHIFT ANIMATION (anim2)
+   ========================================================== */
+@keyframes smoothColorShift {
+  0% {
+    background-color: #1D4ED8;
+  }
+
+  /* Blue */
+  20% {
+    background-color: #B91C1C;
+  }
+
+  /* Red */
+  40% {
+    background-color: #15803D;
+  }
+
+  /* Green */
+  60% {
+    background-color: #7E22CE;
+  }
+
+  /* Purple */
+  80% {
+    background-color: #FEF08A;
+  }
+
+  /* Light Yellow */
+  100% {
+    background-color: #1D4ED8;
+  }
+
+  /* Back to Blue smoothly */
+}
+
+.bg-anim-color-shift {
+  /* තත්පර 60ක් තියෙන නිසා පට්ටම slow එකේ මාරු වෙන්නේ */
+  animation: smoothColorShift 60s ease-in-out infinite;
+}
+
+
+/* 🔥 iOS Safari Touch & Click Mismatch Fix 🔥 */
+@supports (-webkit-touch-callout: none) {
+  .h-screen {
+    height: -webkit-fill-available !important;
+  }
+
+  .min-h-screen {
+    min-height: -webkit-fill-available !important;
+  }
+}
+
+/* Touch events block වෙන එක නවත්තන්න */
+html,
+body {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* 🔥 iOS Tap Delay Fix 🔥 */
+a,
+button,
+input,
+select,
+textarea,
+label,
+[role="button"],
+.cursor-pointer {
+  touch-action: manipulation !important;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Restored glass-card for Student Dashboard components */
+.glass-card {
+  background: rgba(255, 255, 255, 0.02);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+.glass-card:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(239, 68, 68, 0.4);
+}
+
+.glass-container {
+  background: rgba(10, 15, 30, 0.45);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  transform: translateZ(0);
+}
+
+/* UI Optimization for Laptops & Tabs (Zoom Out Effect) */
+@media (max-width: 1440px) {
+  html {
+    font-size: 14.5px;
+  }
+}
+
+@media (max-width: 1280px) {
+  html {
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 1024px) {
+  html {
+    font-size: 12px;
+  }
+}
+
+/* AI Badge එක (කලින් එකම තියාගමු, ඕන නම්) */
+.lumi-badge {
+  margin-left: auto;
+  background-color: #b122e5;
+  color: white;
+  font-size: 11px;
+  padding: 3px 7px;
+  border-radius: 12px;
+  font-weight: bold;
+  box-shadow: 0 0 10px rgba(177, 34, 229, 0.5);
+  animation: s1-icon 3s infinite alternate;
+}
+
+/* ==========================================================
+   ✨ REFINED LUMI SERVICES (Sleek, Modern Light Beam Animation) ✨
+   ========================================================== */
+
+.lumi-nav-item {
+    position: relative;
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    border-radius: 12px;
+    background: transparent;
+    cursor: pointer;
+    text-decoration: none;
+    overflow: hidden;
+    z-index: 1;
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease;
+}
+
+/* Inner Dark Frosted Glass Layer */
+.lumi-nav-item::before {
+    content: '';
+    position: absolute;
+    inset: 1.2px;
+    background: rgba(13, 19, 34, 0.92);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-radius: 10.8px;
+    z-index: -1;
+    transition: background 0.3s ease;
+}
+
+.lumi-nav-item:hover::before {
+    background: rgba(22, 30, 52, 0.95);
+}
+
+.lumi-nav-item.active::before {
+    background: rgba(25, 34, 58, 0.96);
+}
+
+.lumi-nav-item:hover {
+    transform: translateX(4px);
+}
+
+/* Flowing Border Light Beam Animation */
+.lumi-nav-item::after {
+    content: '';
+    position: absolute;
+    top: -60%;
+    left: -60%;
+    width: 220%;
+    height: 220%;
+    z-index: -2;
+    animation: lumi-beam-spin 3.5s linear infinite;
+    opacity: 0.85;
+    transition: opacity 0.3s ease;
+}
+
+.lumi-nav-item:hover::after {
+    opacity: 1;
+    animation-duration: 2.2s;
+}
+
+/* Service 1: LUMI AI Analyser (Electric Cyan Beam) */
+.lumi-analyser::after {
+    background: conic-gradient(from 0deg, transparent 72%, rgba(0, 242, 254, 0.5) 88%, #00f2fe 100%);
+}
+.lumi-analyser:hover, .lumi-analyser.active {
+    box-shadow: 0 2px 16px -2px rgba(0, 242, 254, 0.35);
+}
+.lumi-analyser .lumi-nav-icon {
+    color: #00f2fe;
+    background: rgba(0, 242, 254, 0.12);
+    border: 1px solid rgba(0, 242, 254, 0.25);
+    box-shadow: 0 0 10px rgba(0, 242, 254, 0.2);
+}
+
+/* Service 2: LUMI Chat (Sky Blue Beam) */
+.lumi-chat::after {
+    background: conic-gradient(from 0deg, transparent 72%, rgba(56, 189, 248, 0.5) 88%, #38bdf8 100%);
+}
+.lumi-chat:hover, .lumi-chat.active {
+    box-shadow: 0 2px 16px -2px rgba(56, 189, 248, 0.35);
+}
+.lumi-chat .lumi-nav-icon {
+    color: #38bdf8;
+    background: rgba(56, 189, 248, 0.12);
+    border: 1px solid rgba(56, 189, 248, 0.25);
+    box-shadow: 0 0 10px rgba(56, 189, 248, 0.2);
+}
+
+/* Service 3: LUMI Caller (Emerald Green Beam) */
+.lumi-caller::after {
+    background: conic-gradient(from 0deg, transparent 72%, rgba(16, 185, 129, 0.5) 88%, #10b981 100%);
+}
+.lumi-caller:hover, .lumi-caller.active {
+    box-shadow: 0 2px 16px -2px rgba(16, 185, 129, 0.35);
+}
+.lumi-caller .lumi-nav-icon {
+    color: #10b981;
+    background: rgba(16, 185, 129, 0.12);
+    border: 1px solid rgba(16, 185, 129, 0.25);
+    box-shadow: 0 0 10px rgba(16, 185, 129, 0.2);
+}
+
+/* Service 4: LUMI Image Generator (Rose / Coral Beam) */
+.lumi-image::after {
+    background: conic-gradient(from 0deg, transparent 72%, rgba(244, 63, 94, 0.5) 88%, #f43f5e 100%);
+}
+.lumi-image:hover, .lumi-image.active {
+    box-shadow: 0 2px 16px -2px rgba(244, 63, 94, 0.35);
+}
+.lumi-image .lumi-nav-icon {
+    color: #f43f5e;
+    background: rgba(244, 63, 94, 0.12);
+    border: 1px solid rgba(244, 63, 94, 0.25);
+    box-shadow: 0 0 10px rgba(244, 63, 94, 0.2);
+}
+
+/* Icon Box */
+.lumi-nav-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 7px;
+    margin-right: 10px;
+    flex-shrink: 0;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.lumi-nav-item:hover .lumi-nav-icon {
+    transform: scale(1.12);
+}
+
+/* Clean, Steady, Highly-Readable Typography */
+.lumi-nav-text {
+    font-size: 13.5px;
+    font-weight: 700;
+    color: #f8fafc;
+    letter-spacing: 0.2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+@keyframes lumi-beam-spin {
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes ray-spin-slow {
+    0% {
+        transform: translate(-50%, -50%) rotate(0deg);
+    }
+    100% {
+        transform: translate(-50%, -50%) rotate(360deg);
+    }
+}
+
+@keyframes float-subtle {
+    0%, 100% {
+        transform: translateY(0px);
+    }
+    50% {
+        transform: translateY(-8px);
+    }
+}
+
+@keyframes aura-glow-pulse {
+    0%, 100% {
+        opacity: 0.55;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.95;
+        transform: scale(1.08);
+    }
+}
+
+/* ==========================================================
+   📚 IMA PUSTHAKALAYA & SINHALA TYPOGRAPHY & 3D DOOR PORTAL
+   ========================================================== */
+.font-sinhala,
+.font-gemunu {
+  font-family: 'Noto Sans Sinhala', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+}
+
+@keyframes bookDoorLeft {
+  0% {
+    transform: perspective(1200px) rotateY(0deg);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  }
+  100% {
+    transform: perspective(1200px) rotateY(-115deg);
+    box-shadow: -20px 10px 50px rgba(245, 158, 11, 0.4);
+  }
+}
+
+@keyframes bookDoorRight {
+  0% {
+    transform: perspective(1200px) rotateY(0deg);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  }
+  100% {
+    transform: perspective(1200px) rotateY(115deg);
+    box-shadow: 20px 10px 50px rgba(245, 158, 11, 0.4);
+  }
+}
+
+@keyframes portalLightRay {
+  0% {
+    opacity: 0;
+    transform: scale(0.3) rotate(0deg);
+  }
+  50% {
+    opacity: 0.85;
+    transform: scale(1.2) rotate(180deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(2.5) rotate(360deg);
+  }
+}
+
+@keyframes portalContentReveal {
+  0% {
+    opacity: 0;
+    transform: scale(0.85) translateZ(-200px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateZ(0);
+  }
+}
+
+.animate-door-left {
+  transform-origin: left center;
+  animation: bookDoorLeft 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-door-right {
+  transform-origin: right center;
+  animation: bookDoorRight 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-portal-ray {
+  animation: portalLightRay 1.4s ease-out forwards;
+}
+
+.animate-portal-content {
+  animation: portalContentReveal 1s 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* 🔥 Social Media Story Glow & Avatar Blink Animations 🔥 */
+@keyframes storyRingGlow {
+  0%, 100% {
+    box-shadow: 0 0 15px rgba(244, 63, 94, 0.5), 0 0 30px rgba(236, 72, 153, 0.3);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 30px rgba(244, 63, 94, 0.9), 0 0 60px rgba(249, 115, 22, 0.65);
+    transform: scale(1.05);
+  }
+}
+
+.story-glow-active {
+  animation: storyRingGlow 2s ease-in-out infinite;
+}

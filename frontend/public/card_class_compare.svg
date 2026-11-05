@@ -1,0 +1,139 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450" width="100%" height="100%">
+  <defs>
+    <!-- Background Gradient -->
+    <radialGradient id="bgGlow" cx="50%" cy="50%" r="70%">
+      <stop offset="0%" stop-color="#1e0b36"/>
+      <stop offset="50%" stop-color="#0e041d"/>
+      <stop offset="100%" stop-color="#05010a"/>
+    </radialGradient>
+
+    <!-- Glass Gradients -->
+    <linearGradient id="glassA" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#a855f7" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#6b21a8" stop-opacity="0.10"/>
+    </linearGradient>
+
+    <linearGradient id="glassB" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#06b6d4" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#0e7490" stop-opacity="0.10"/>
+    </linearGradient>
+
+    <linearGradient id="glassCenter" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f43f5e" stop-opacity="0.4"/>
+      <stop offset="50%" stop-color="#8b5cf6" stop-opacity="0.25"/>
+      <stop offset="100%" stop-color="#ec4899" stop-opacity="0.35"/>
+    </linearGradient>
+
+    <linearGradient id="borderPurple" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#e879f9" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#a855f7" stop-opacity="0.3"/>
+    </linearGradient>
+
+    <linearGradient id="borderCyan" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#67e8f9" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#06b6d4" stop-opacity="0.3"/>
+    </linearGradient>
+
+    <!-- Neon Glow Filters -->
+    <filter id="neonGlowPurple" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="10" result="blur1"/>
+      <feGaussianBlur stdDeviation="4" result="blur2"/>
+      <feMerge>
+        <feMergeNode in="blur1"/>
+        <feMergeNode in="blur2"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <filter id="neonGlowCyan" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="10" result="blur1"/>
+      <feGaussianBlur stdDeviation="4" result="blur2"/>
+      <feMerge>
+        <feMergeNode in="blur1"/>
+        <feMergeNode in="blur2"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background Base -->
+  <rect width="800" height="450" fill="url(#bgGlow)"/>
+
+  <!-- Futuristic Perspective Grid Floors -->
+  <g opacity="0.15" stroke="#a855f7" stroke-width="1">
+    <path d="M0 400 L800 400 M0 360 L800 360 M0 330 L800 330 M0 310 L800 310"/>
+    <path d="M400 300 L100 450 M400 300 L250 450 M400 300 L400 450 M400 300 L550 450 M400 300 L700 450"/>
+  </g>
+
+  <!-- Ambient Light Orbs -->
+  <circle cx="220" cy="200" r="160" fill="#9333ea" opacity="0.3" filter="url(#neonGlowPurple)"/>
+  <circle cx="580" cy="200" r="160" fill="#0891b2" opacity="0.3" filter="url(#neonGlowCyan)"/>
+  <circle cx="400" cy="220" r="120" fill="#f43f5e" opacity="0.25" filter="url(#neonGlowPurple)"/>
+
+  <!-- Connecting Laser Beam between Classes -->
+  <line x1="220" y1="210" x2="580" y2="210" stroke="#ec4899" stroke-width="3" stroke-dasharray="8 6" filter="url(#neonGlowPurple)" opacity="0.8"/>
+  <line x1="220" y1="210" x2="580" y2="210" stroke="#ffffff" stroke-width="1.5" opacity="0.9"/>
+
+  <!-- ==================== LEFT CLASS CARD (Class A - Purple Hologram) ==================== -->
+  <g transform="translate(80, 75)">
+    <!-- 3D Shadow -->
+    <rect x="10" y="15" width="260" height="270" rx="24" fill="#000000" opacity="0.6"/>
+    <!-- Glass Panel -->
+    <rect x="0" y="0" width="260" height="270" rx="24" fill="url(#glassA)" stroke="url(#borderPurple)" stroke-width="2" filter="url(#neonGlowPurple)"/>
+    
+    <!-- Top Header -->
+    <rect x="20" y="20" width="80" height="24" rx="12" fill="#a855f7" fill-opacity="0.3"/>
+    <text x="60" y="36" fill="#f5d0fe" font-family="system-ui, sans-serif" font-size="11" font-weight="900" text-anchor="middle" letter-spacing="1">BATCH A</text>
+    
+    <!-- Holographic Radar Ring -->
+    <circle cx="130" cy="125" r="50" fill="none" stroke="#c084fc" stroke-width="1.5" stroke-dasharray="6 4" opacity="0.6"/>
+    <circle cx="130" cy="125" r="36" fill="#9333ea" fill-opacity="0.25" stroke="#e879f9" stroke-width="2"/>
+    <polygon points="130,85 165,115 150,155 110,155 95,115" fill="#c084fc" fill-opacity="0.35" stroke="#f0abfc" stroke-width="2" filter="url(#neonGlowPurple)"/>
+    
+    <!-- Student Count Badge -->
+    <text x="130" y="215" fill="#ffffff" font-family="system-ui, sans-serif" font-size="22" font-weight="900" text-anchor="middle">185 Students</text>
+    <text x="130" y="235" fill="#d8b4fe" font-family="system-ui, sans-serif" font-size="11" font-weight="600" text-anchor="middle">Physics 2027 A/L</text>
+  </g>
+
+  <!-- ==================== RIGHT CLASS CARD (Class B - Cyan Hologram) ==================== -->
+  <g transform="translate(460, 75)">
+    <!-- 3D Shadow -->
+    <rect x="10" y="15" width="260" height="270" rx="24" fill="#000000" opacity="0.6"/>
+    <!-- Glass Panel -->
+    <rect x="0" y="0" width="260" height="270" rx="24" fill="url(#glassB)" stroke="url(#borderCyan)" stroke-width="2" filter="url(#neonGlowCyan)"/>
+    
+    <!-- Top Header -->
+    <rect x="20" y="20" width="80" height="24" rx="12" fill="#06b6d4" fill-opacity="0.3"/>
+    <text x="60" y="36" fill="#cffafe" font-family="system-ui, sans-serif" font-size="11" font-weight="900" text-anchor="middle" letter-spacing="1">BATCH B</text>
+    
+    <!-- Holographic Radar Ring -->
+    <circle cx="130" cy="125" r="50" fill="none" stroke="#38bdf8" stroke-width="1.5" stroke-dasharray="6 4" opacity="0.6"/>
+    <circle cx="130" cy="125" r="36" fill="#0284c7" fill-opacity="0.25" stroke="#67e8f9" stroke-width="2"/>
+    <polygon points="130,90 160,120 145,155 115,155 100,120" fill="#38bdf8" fill-opacity="0.35" stroke="#a5f3fc" stroke-width="2" filter="url(#neonGlowCyan)"/>
+    
+    <!-- Student Count Badge -->
+    <text x="130" y="215" fill="#ffffff" font-family="system-ui, sans-serif" font-size="22" font-weight="900" text-anchor="middle">162 Students</text>
+    <text x="130" y="235" fill="#a5f3fc" font-family="system-ui, sans-serif" font-size="11" font-weight="600" text-anchor="middle">Econ 2027 A/L</text>
+  </g>
+
+  <!-- ==================== CENTER OVERLAP COMPARISON EMBLEM ==================== -->
+  <g transform="translate(325, 125)">
+    <!-- Glowing Outer Diamond -->
+    <rect x="0" y="0" width="150" height="170" rx="30" fill="url(#glassCenter)" stroke="#f43f5e" stroke-width="2.5" filter="url(#neonGlowPurple)"/>
+    <rect x="8" y="8" width="134" height="154" rx="24" fill="none" stroke="#fda4af" stroke-width="1" stroke-dasharray="5 3" opacity="0.5"/>
+    
+    <!-- Intersection Icon -->
+    <circle cx="75" cy="55" r="28" fill="#000000" fill-opacity="0.6" stroke="#fb7185" stroke-width="2"/>
+    <text x="75" y="62" fill="#ffffff" font-family="system-ui, sans-serif" font-size="18" text-anchor="middle">⚡ VS</text>
+    
+    <text x="75" y="112" fill="#fda4af" font-family="system-ui, sans-serif" font-size="10" font-weight="900" text-anchor="middle" letter-spacing="1">COMMON</text>
+    <text x="75" y="136" fill="#ffffff" font-family="monospace" font-size="24" font-weight="900" text-anchor="middle" filter="url(#neonGlowPurple)">94</text>
+    <text x="75" y="152" fill="#34d399" font-family="system-ui, sans-serif" font-size="10" font-weight="800" text-anchor="middle">54% OVERLAP</text>
+  </g>
+
+  <!-- Glowing Sparks -->
+  <circle cx="140" cy="90" r="3" fill="#f0abfc" filter="url(#neonGlowPurple)"/>
+  <circle cx="680" cy="110" r="3" fill="#67e8f9" filter="url(#neonGlowCyan)"/>
+  <circle cx="400" cy="65" r="4" fill="#fb7185" filter="url(#neonGlowPurple)"/>
+  <circle cx="400" cy="380" r="3" fill="#c084fc" filter="url(#neonGlowPurple)"/>
+</svg>

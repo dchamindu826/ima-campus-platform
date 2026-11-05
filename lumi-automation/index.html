@@ -1,0 +1,522 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LUMI Automation</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <meta name="description"
+    content="LUMI Automation transforms businesses with cutting-edge AI chatbots, intelligent slip verification, and complete workflow automation." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Syncopate:wght@400;700&display=swap"
+    rel="stylesheet">
+  <style>
+    body {
+      background-color: #050505;
+      color: #050505;
+      margin: 0;
+      overflow: hidden;
+    }
+
+    .preloader {
+      position: fixed;
+      inset: 0;
+      background-color: #050505;
+      z-index: 999999;
+      display: block;
+    }
+  </style>
+</head>
+
+<body>
+  <!-- Custom Cursor -->
+  <div class="cursor-dot"></div>
+  <div class="cursor-ring"></div>
+
+  <!-- Mouse Trail Canvas -->
+  <canvas id="trailCanvas"></canvas>
+
+  <!-- Noise Overlay -->
+  <div class="noise-overlay"></div>
+
+  <!-- Scroll Progress Bar -->
+  <div class="scroll-progress">
+    <div class="scroll-progress-fill" id="scrollProgress"></div>
+  </div>
+
+  <!-- Floating Geometric Shapes -->
+  <div class="floating-shapes">
+    <div class="shape shape-1"></div>
+    <div class="shape shape-2"></div>
+    <div class="shape shape-3"></div>
+    <div class="shape shape-4"></div>
+    <div class="shape shape-5"></div>
+  </div>
+
+  <!-- Preloader -->
+  <div class="preloader" id="preloader">
+    <canvas id="preloaderCanvas"></canvas>
+    <div class="preloader-overlay"></div>
+  </div>
+
+  <!-- Navigation -->
+  <nav class="nav" id="nav">
+    <div class="nav-inner">
+      <a href="#" class="nav-logo">LUMI Automation<span>.</span></a>
+      <div class="nav-menu">
+        <a href="#about" class="nav-link" data-hover="About">About</a>
+        <a href="#services" class="nav-link" data-hover="Services">Services</a>
+        <a href="#stats" class="nav-link" data-hover="Impact">Impact</a>
+        <a href="#process" class="nav-link" data-hover="Process">Process</a>
+        <a href="#contact" class="nav-link nav-cta">Start Project</a>
+      </div>
+      <button class="hamburger" id="hamburger">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- Mobile Menu -->
+  <div class="mobile-menu" id="mobileMenu">
+    <a href="#about" class="mobile-link">About</a>
+    <a href="#services" class="mobile-link">Services</a>
+    <a href="#stats" class="mobile-link">Impact</a>
+    <a href="#process" class="mobile-link">Process</a>
+    <a href="#contact" class="mobile-link">Start Project</a>
+  </div>
+
+  <main id="smooth-content">
+    <!-- ========== HERO ========== -->
+    <section class="hero" id="hero">
+      <!-- Three.js 3D Canvas -->
+      <div id="hero3d"></div>
+      <div class="hero-overlay"></div>
+      <div class="hero-content">
+        <div class="hero-badge">
+          <div class="badge-dot"></div>
+          <span>AI-Powered Automation</span>
+        </div>
+        <h1 class="hero-h1">
+          <div class="split-line"><span class="line-inner">We Build</span></div>
+          <div class="split-line"><span class="line-inner">Intelligent</span></div>
+          <div class="split-line"><span class="line-inner gradient-text">Systems</span></div>
+        </h1>
+        <p class="hero-p">LUMI Automation eliminates manual processes with AI chatbots, smart document verification, and
+          end-to-end workflow automation.</p>
+        <div class="hero-actions">
+          <a href="#contact" class="btn-primary magnetic">
+            <span>Get Started</span>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M7 17L17 7M17 7H7M17 7V17" />
+            </svg>
+          </a>
+          <a href="#services" class="btn-ghost magnetic">
+            <span>Our Services</span>
+          </a>
+        </div>
+      </div>
+      <div class="scroll-hint">
+        <div class="scroll-line"></div>
+        <span>Scroll to explore</span>
+      </div>
+    </section>
+
+    <!-- ========== MARQUEE ========== -->
+    <div class="marquee-section">
+      <div class="marquee-track">
+        <div class="marquee-content">
+          <span>AI Chatbots</span><span class="marquee-dot">◆</span>
+          <span>Slip Verification</span><span class="marquee-dot">◆</span>
+          <span>Workflow Automation</span><span class="marquee-dot">◆</span>
+          <span>Machine Learning</span><span class="marquee-dot">◆</span>
+          <span>Neural Networks</span><span class="marquee-dot">◆</span>
+          <span>Computer Vision</span><span class="marquee-dot">◆</span>
+          <span>AI Chatbots</span><span class="marquee-dot">◆</span>
+          <span>Slip Verification</span><span class="marquee-dot">◆</span>
+          <span>Workflow Automation</span><span class="marquee-dot">◆</span>
+          <span>Machine Learning</span><span class="marquee-dot">◆</span>
+          <span>Neural Networks</span><span class="marquee-dot">◆</span>
+          <span>Computer Vision</span><span class="marquee-dot">◆</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== ABOUT ========== -->
+    <section class="about" id="about">
+      <div class="container">
+        <div class="about-grid">
+          <div class="about-left">
+            <span class="label">About Us</span>
+            <h2 class="about-h2">We don't just automate.<br />We <span class="highlight">transform</span>.</h2>
+            <p class="about-p">LUMI Automation is a next-generation technology company specializing in artificial
+              intelligence solutions. We partner with businesses to replace outdated manual workflows with intelligent,
+              self-learning systems.</p>
+            <p class="about-p">From AI-powered chatbots that handle customer interactions to computer vision systems
+              that verify payment slips instantly — we build the tools that let your team focus on what matters.</p>
+            <div class="about-tags">
+              <span class="tag">Artificial Intelligence</span>
+              <span class="tag">Deep Learning</span>
+              <span class="tag">Computer Vision</span>
+              <span class="tag">NLP</span>
+              <span class="tag">Process Automation</span>
+            </div>
+          </div>
+          <div class="about-right">
+            <div class="about-img-wrapper tilt-card">
+              <img src="/images/about.png" alt="LUMI Automation AI Command Center" />
+              <div class="img-glow"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== SERVICES (Full-width Cards with Images) ========== -->
+    <section class="services" id="services">
+      <div class="container">
+        <div class="services-header">
+          <span class="label">What We Do</span>
+          <h2 class="services-h2">Our Core <span class="gradient-text">Services</span></h2>
+        </div>
+
+        <!-- Service 1 -->
+        <div class="service-block">
+          <div class="service-img-col tilt-card">
+            <img src="/images/service-chatbot.png" alt="AI Chatbot Interface" />
+            <div class="img-glow"></div>
+          </div>
+          <div class="service-text-col">
+            <span class="service-num">01</span>
+            <h3>AI Chatbots</h3>
+            <p>Build custom conversational AI that understands your business context. Handle customer support, lead
+              generation, and internal operations — all without human intervention.</p>
+            <ul class="feature-list">
+              <li><span class="check">✦</span> Natural Language Understanding</li>
+              <li><span class="check">✦</span> Multi-language Support</li>
+              <li><span class="check">✦</span> CRM & API Integration</li>
+              <li><span class="check">✦</span> Self-Learning Capabilities</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Service 2 -->
+        <div class="service-block reverse">
+          <div class="service-img-col tilt-card">
+            <img src="/images/service-verification.png" alt="AI Slip Verification" />
+            <div class="img-glow"></div>
+          </div>
+          <div class="service-text-col">
+            <span class="service-num">02</span>
+            <h3>AI Slip Verification</h3>
+            <p>Instantly extract, validate, and cross-reference payment slips using advanced OCR and computer vision.
+              Eliminate manual data entry and fraud with 99.7% accuracy.</p>
+            <ul class="feature-list">
+              <li><span class="check">✦</span> Real-time OCR Processing</li>
+              <li><span class="check">✦</span> Fraud Detection Engine</li>
+              <li><span class="check">✦</span> Bank Statement Matching</li>
+              <li><span class="check">✦</span> Dashboard & Analytics</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Service 3 -->
+        <div class="service-block">
+          <div class="service-img-col tilt-card">
+            <img src="/images/service-automation.png" alt="Workflow Automation" />
+            <div class="img-glow"></div>
+          </div>
+          <div class="service-text-col">
+            <span class="service-num">03</span>
+            <h3>Workflow Automation</h3>
+            <p>Transform every repetitive manual task into an automated, error-free pipeline. From data entry to report
+              generation — we automate end-to-end business processes.</p>
+            <ul class="feature-list">
+              <li><span class="check">✦</span> Custom Workflow Design</li>
+              <li><span class="check">✦</span> API-First Architecture</li>
+              <li><span class="check">✦</span> Real-time Monitoring</li>
+              <li><span class="check">✦</span> Scalable Infrastructure</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== STATS ========== -->
+    <section class="stats" id="stats">
+      <div class="container">
+        <div class="stats-grid">
+          <div class="stat-item tilt-card">
+            <div class="stat-number" data-target="99.7">0</div>
+            <div class="stat-suffix">%</div>
+            <div class="stat-label">Accuracy Rate</div>
+          </div>
+          <div class="stat-item tilt-card">
+            <div class="stat-number" data-target="500">0</div>
+            <div class="stat-suffix">K+</div>
+            <div class="stat-label">Tasks Automated</div>
+          </div>
+          <div class="stat-item tilt-card">
+            <div class="stat-number" data-target="85">0</div>
+            <div class="stat-suffix">%</div>
+            <div class="stat-label">Cost Reduction</div>
+          </div>
+          <div class="stat-item tilt-card">
+            <div class="stat-number" data-target="24">0</div>
+            <div class="stat-suffix">/7</div>
+            <div class="stat-label">Uptime</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== PROCESS ========== -->
+    <section class="process" id="process">
+      <div class="container">
+        <div class="process-header">
+          <span class="label">How We Work</span>
+          <h2 class="process-h2">From Idea to<br /><span class="gradient-text">Intelligent System</span></h2>
+        </div>
+        <div class="process-timeline">
+          <div class="process-line-track">
+            <div class="process-line-fill"></div>
+          </div>
+          <div class="process-step">
+            <div class="step-marker"><span>01</span></div>
+            <div class="step-content">
+              <h3>Discovery & Analysis</h3>
+              <p>We deep-dive into your current workflows, identify bottlenecks, and map out automation opportunities.
+              </p>
+            </div>
+          </div>
+          <div class="process-step">
+            <div class="step-marker"><span>02</span></div>
+            <div class="step-content">
+              <h3>AI Architecture Design</h3>
+              <p>Our engineers design custom AI models and system architecture tailored to your specific business needs.
+              </p>
+            </div>
+          </div>
+          <div class="process-step">
+            <div class="step-marker"><span>03</span></div>
+            <div class="step-content">
+              <h3>Build & Train</h3>
+              <p>We build, train, and rigorously test AI models using your real-world data for maximum accuracy.</p>
+            </div>
+          </div>
+          <div class="process-step">
+            <div class="step-marker"><span>04</span></div>
+            <div class="step-content">
+              <h3>Deploy & Scale</h3>
+              <p>Seamless deployment with continuous monitoring, optimization, and scaling as your business grows.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== INTERACTIVE AI REVEAL ========== -->
+    <section class="interactive-ai" id="interactive-ai">
+      <div class="container">
+        <div class="interactive-ai-grid">
+          <div class="interactive-ai-left">
+            <div class="xray-container" id="xrayContainer">
+              <img class="xray-base" src="/images/ai-human.png" alt="Human Professional" />
+              <div class="xray-mask-layer" id="xrayMask">
+                <img class="xray-reveal" src="/images/ai-robot.png" alt="AI Robot Core" />
+              </div>
+              <div class="xray-cursor-ring" id="xrayCursorRing"></div>
+              <div class="xray-indicator" id="xrayIndicator">
+                <div class="indicator-dot"></div>
+                <span>Hover to Reveal</span>
+              </div>
+            </div>
+          </div>
+          <div class="interactive-ai-right">
+            <span class="label">The LUMI Advantage</span>
+            <h2 class="ai-reveal-h2">Human Experience.<br /><span class="gradient-text">Machine Precision.</span></h2>
+            <p class="ai-reveal-p">At LUMI Automation, we build systems that feel entirely human but operate with the
+              flawless speed of AI. Whether it's an intelligent chatbot interacting with your customers, or a neural
+              network verifying payment slips instantly—we automate the heavy lifting.</p>
+            <ul class="feature-list" style="margin-top: 2rem;">
+              <li><span class="check">✦</span> Conversational AI Chatbots</li>
+              <li><span class="check">✦</span> Instant Slip Verification</li>
+              <li><span class="check">✦</span> End-to-End Workflow Automation</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== TESTIMONIALS ========== -->
+    <section class="testimonials" id="testimonials">
+      <div class="container">
+        <div class="testimonials-header">
+          <span class="label">Client Stories</span>
+          <h2 class="testimonials-h2">Trusted by <span class="gradient-text">Innovators</span></h2>
+        </div>
+        <div class="testimonials-grid">
+          <div class="testimonial-card glass-card tilt-card">
+            <div class="testimonial-stars">★★★★★</div>
+            <p class="testimonial-text">"LUMI Automation's AI chatbot transformed our customer service. Response time
+              dropped from hours to seconds. Absolutely game-changing."</p>
+            <div class="testimonial-author">
+              <div class="author-avatar">SK</div>
+              <div class="author-info">
+                <strong>Samantha K.</strong>
+                <span>CEO, TechStart Lanka</span>
+              </div>
+            </div>
+          </div>
+          <div class="testimonial-card glass-card tilt-card">
+            <div class="testimonial-stars">★★★★★</div>
+            <p class="testimonial-text">"The slip verification system catches fraud we never could manually. It paid for
+              itself in the first month."</p>
+            <div class="testimonial-author">
+              <div class="author-avatar">RP</div>
+              <div class="author-info">
+                <strong>Ravindu P.</strong>
+                <span>CTO, PaySecure</span>
+              </div>
+            </div>
+          </div>
+          <div class="testimonial-card glass-card tilt-card">
+            <div class="testimonial-stars">★★★★★</div>
+            <p class="testimonial-text">"They automated 85% of our manual workflows. Our team now focuses on strategy
+              instead of data entry. Incredible ROI."</p>
+            <div class="testimonial-author">
+              <div class="author-avatar">MF</div>
+              <div class="author-info">
+                <strong>Malith F.</strong>
+                <span>Operations Head, GlobalBiz</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== BIG CTA ========== -->
+    <section class="big-cta">
+      <div class="big-cta-bg"></div>
+      <div class="container">
+        <h2 class="big-cta-title">
+          <span class="scramble-text" data-text="Stop Thinking.">Stop Thinking.</span><br />
+          <span class="scramble-text gradient-text" data-text="Start Automating.">Start Automating.</span>
+        </h2>
+        <a href="#contact" class="btn-primary btn-huge magnetic">
+          <span>Launch Your Project</span>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M5 12h14M12 5l7 7-7 7" />
+          </svg>
+        </a>
+      </div>
+    </section>
+
+    <!-- ========== CONTACT / CTA ========== -->
+    <section class="contact" id="contact">
+      <div class="container">
+        <div class="contact-inner">
+          <div class="contact-left">
+            <span class="label">Get In Touch</span>
+            <h2 class="contact-h2">Let's build something <span class="gradient-text">extraordinary</span></h2>
+            <p class="contact-p">Ready to eliminate manual work and supercharge your business with AI? Let's talk.</p>
+            <div class="contact-info">
+              <div class="info-row">
+                <span class="info-label">Email</span>
+                <a href="mailto:automationlumi@gmail.com" class="info-value">automationlumi@gmail.com</a>
+              </div>
+              <div class="info-row">
+                <span class="info-label">Phone</span>
+                <span class="info-value">+94 72 2882 344</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">Location</span>
+                <span class="info-value">Colombo, Sri Lanka</span>
+              </div>
+            </div>
+          </div>
+          <div class="contact-right">
+            <form class="contact-form" id="contactForm">
+              <div class="form-group">
+                <input type="text" id="name" placeholder="Your Name" required />
+              </div>
+              <div class="form-group">
+                <input type="email" id="email" placeholder="Your Email" required />
+              </div>
+              <div class="form-group">
+                <select id="service">
+                  <option value="" disabled selected>What service are you interested in?</option>
+                  <option value="chatbots">AI Chatbots</option>
+                  <option value="verification">Slip Verification</option>
+                  <option value="automation">Workflow Automation</option>
+                  <option value="custom">Custom AI Solution</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <textarea id="message" placeholder="Tell us about your project..." rows="4"></textarea>
+              </div>
+              <button type="submit" class="btn-submit magnetic">
+                <span>Send Message</span>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M22 2L11 13M22 2L15 22L11 13M22 2L2 9L11 13" />
+                </svg>
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== FOOTER ========== -->
+    <footer class="footer">
+      <div class="container">
+        <div class="footer-top">
+          <div class="footer-brand">
+            <div class="footer-logo">LUMI Automation<span>.</span></div>
+            <p>Next-generation AI automation solutions for forward-thinking businesses.</p>
+          </div>
+          <div class="footer-links-group">
+            <h4>Company</h4>
+            <a href="#about">About</a>
+            <a href="#services">Services</a>
+            <a href="#process">Process</a>
+            <a href="#contact">Contact</a>
+          </div>
+          <div class="footer-links-group">
+            <h4>Services</h4>
+            <a href="#services">AI Chatbots</a>
+            <a href="#services">Slip Verification</a>
+            <a href="#services">Workflow Automation</a>
+            <a href="#services">Custom AI</a>
+          </div>
+          <div class="footer-links-group">
+            <h4>Connect</h4>
+            <a href="https://wa.me/94714941559" target="_blank" style="display: flex; align-items: center; gap: 8px;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
+              </svg>
+              WhatsApp
+            </a>
+          </div>
+        </div>
+        <div class="footer-bottom">
+          <p>&copy; 2026 LUMI Automation Pvt Ltd. All rights reserved.</p>
+        </div>
+      </div>
+    </footer>
+  </main>
+
+  <!-- Back to Top -->
+  <button class="back-to-top" id="backToTop">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M12 19V5M5 12l7-7 7 7" />
+    </svg>
+  </button>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+
+</html>

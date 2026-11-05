@@ -1,0 +1,21 @@
+{
+  "name": "ImaAcademyApp",
+  "displayName": "IMA Campus",
+  "extra": {
+    "eas": {
+      "projectId": ""
+    }
+  },
+  "android": {
+    "package": "com.imaacademyapp"
+  },
+  "plugins": [
+    [
+      "@config-plugins/react-native-webrtc",
+      {
+        "cameraPermission": "Allow $(PRODUCT_NAME) to access your camera",
+        "microphonePermission": "Allow $(PRODUCT_NAME) to access your microphone"
+      }
+    ]
+  ]
+}
