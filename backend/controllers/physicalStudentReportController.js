@@ -1,5 +1,5 @@
 const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const prisma = require('../src/core/db');
 const esmsService = require('../services/esmsService');
 
 // Helper: Calculate scheduled class dates in a given month based on timetables

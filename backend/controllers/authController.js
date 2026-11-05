@@ -1,5 +1,5 @@
 const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const prisma = require('../src/core/db');
 const crypto = require('crypto');
 const jwt = require('jsonwebtoken'); 
 const bcrypt = require('bcrypt'); // Puluwannam bcryptjs use karanna

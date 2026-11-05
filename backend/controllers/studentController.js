@@ -1,5 +1,5 @@
 const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const prisma = require('../src/core/db');
 const crypto = require('crypto');
 const jwt = require('jsonwebtoken'); // 🔥 FIX: Ghost login error fix
 const bcrypt = require('bcrypt');
@@ -1616,14 +1616,9 @@ exports.getCourseModules = async (req, res) => {
         });
 
         // 🔥 FIX: Deduplicate contents to prevent showing duplicates when enrolled in both Monthly and Full Payment courses
-        const uniqueContentsMap = new Map();
-        contentsRaw.forEach(c => {
-            const uniqueKey = `${(c.title || '').trim().toLowerCase()}_${c.contentType}`;
-            if (!uniqueContentsMap.has(uniqueKey)) {
-                uniqueContentsMap.set(uniqueKey, c);
-            }
-        });
-        const contents = Array.from(uniqueContentsMap.values());
+        // Same title is NOT enough to call two items duplicates (different lecturers
+        // reuse titles) — dedupe on title + type + actual media. See src/modules/content/rules.js
+        const contents = require('../src/modules/content/rules').dedupeContents(contentsRaw);
 
         const groupIds = [...new Set(contents.map(c => c.contentGroupId).filter(Boolean))];
         const groupTitles = [...new Set(contents.map(c => c.group?.title).filter(Boolean))];

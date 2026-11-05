@@ -1,6 +1,6 @@
 const admin = require('firebase-admin');
 const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const prisma = require('../src/core/db');
 
 /**
  * Dispatches high-priority push notifications to active staff members

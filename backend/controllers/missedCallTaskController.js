@@ -1,5 +1,5 @@
 const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const prisma = require('../src/core/db');
 
 // Helper to get formatted date string YYYY-MM-DD in Colombo time (UTC+5:30)
 function getColomboDateString(d = new Date()) {

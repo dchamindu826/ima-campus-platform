@@ -1,8 +1,9 @@
 const express = require('express');
+const { guardCourseParam, guardContentParam } = require('../../src/modules/entitlement/guard');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
 const { PrismaClient } = require('@prisma/client'); // 🔥 Database eka ona session check karanna
-const prisma = new PrismaClient();
+const prisma = require('../../src/core/db');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs'); // 🔥 අලුතෙන් එකතු කළා ෆෝල්ඩර් එක චෙක් කරන්න
@@ -72,7 +73,7 @@ router.post('/verify-student', mobileStudentController.verifyStudent);
 router.post('/update-yt-cookies', verifyToken, mobileStudentController.updateYtCookies);
 router.get('/my-payments', verifyToken, mobileStudentController.getMobilePayments);
 router.get('/classroom', verifyToken, mobileStudentController.getMobileClassroom);
-router.get('/module/:id', verifyToken, mobileStudentController.getCourseModules);
+router.get('/module/:id', verifyToken, guardCourseParam('id'), mobileStudentController.getCourseModules);
 router.get('/classroom/lives', verifyToken, mobileStudentController.getMobileUpcomingLives);
 router.post('/profile/password', verifyToken, mobileStudentController.updateMobilePassword);
 router.get('/get-video-token', verifyToken, mobileStudentController.getVideoToken);
@@ -81,7 +82,7 @@ router.get('/get-video-token', verifyToken, mobileStudentController.getVideoToke
 router.post('/profile/update', verifyToken, upload.single('image'), mobileStudentController.updateMobileProfile);
 
 // 🔥 Proxy Download Route for Zoom Recordings (Using DB ID)
-router.get('/download-rec/:contentId', verifyToken, mobileStudentController.downloadRecording);
+router.get('/download-rec/:contentId', verifyToken, guardContentParam('contentId'), mobileStudentController.downloadRecording);
 
 // 🔥 Proxy Download Route for Direct Extracted MP4 (Bypass DB & Meeting ID entirely)
 router.get('/proxy-stream', verifyToken, mobileStudentController.proxyStreamUrl);

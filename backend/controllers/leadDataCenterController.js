@@ -1,5 +1,5 @@
 const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const prisma = require('../src/core/db');
 
 /**
  * Get Lead Data Center records with filtering, search, stats, and pagination.

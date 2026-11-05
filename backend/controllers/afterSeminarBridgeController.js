@@ -1,5 +1,5 @@
 const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const prisma = require('../src/core/db');
 
 // ============================================================================
 // 1. GET PENDING BRIDGE LEADS (Free Seminar එකේ ඉන්න, After එකේ නැති අය)

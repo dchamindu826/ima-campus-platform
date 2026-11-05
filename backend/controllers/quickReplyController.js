@@ -1,5 +1,5 @@
 const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const prisma = require('../src/core/db');
 
 // Get Quick Replies for the logged-in user
 exports.getQuickReplies = async (req, res) => {

@@ -1,5 +1,5 @@
 const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const prisma = require('../src/core/db');
 const axios = require('axios');
 
 const DIALOG_STATUS_MESSAGES = {

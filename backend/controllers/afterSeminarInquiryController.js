@@ -1,5 +1,5 @@
 const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const prisma = require('../src/core/db');
 const axios = require('axios');
 const fs = require('fs'); 
 const path = require('path');

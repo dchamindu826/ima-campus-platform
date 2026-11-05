@@ -1,5 +1,5 @@
 const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const prisma = require('../src/core/db');
 
 /**
  * Service to handle appending immutable records to the Call Campaign Data Center Event Vault.

@@ -1,0 +1,141 @@
+# IMA Campus Backend — Architecture & Refactor Plan
+
+> **New Claude chat?** Give it this file first. It holds the whole plan, the rules,
+> and what is already done, so nothing has to be re-explained.
+
+## Why we are refactoring
+
+Staff reports in the "Web & App Errors" group (June–Oct 2026) are not 1000 separate
+bugs. They come from six root causes in the code:
+
+| # | Root cause | Typical staff report |
+|---|------------|----------------------|
+| 1 | "Which classes can this student access?" is decided in ~10 places with different rules | "ghost login eken pennawa, lamayata pennanne na", "Sept witharak gewwa lamayata Oct live eka", "wena sirge rec eka" |
+| 2 | Payment status changes have no rules (no state machine) | "approve wela aye pending", "2 parak approve wela", "approve + post pay dekema" |
+| 3 | PayHere server notify never matches an order (`"ORD-..."` → `parseInt` → `NaN`) | "salli kapila, web eka ok wenne na" |
+| 4 | Tute delivery is created once, at approve time only; failures are never retried | "approve wela, delivery hub eke na" |
+| 5 | CRM lead status is a copied value, synced by hand | "full paid, eth non enrolled", "pay kala, Round 2 eke" |
+| 6 | Every dashboard counts the same thing with its own query | "coordinator dashboard not tally with management" |
+
+The fix is to give each concern **one owner module**, not to patch each report.
+
+## Approach: replace step by step (strangler pattern)
+
+We do **not** stop the system and rewrite it. New modules live in `backend/src/`
+and run inside the same Express app, on the **same MySQL database and Prisma schema**
+(no data migration). Old controllers are switched to call the new modules one by
+one, then deleted.
+
+```
+backend/
+  server.js                 ← old entry point (still runs everything)
+  controllers/ routes/      ← OLD code, shrinks over time
+  src/
+    core/                   ← shared foundation (one DB client, auth, errors, events)
+    modules/
+      entitlement/          ← ✅ DONE (step 1)
+      payments/             ← next
+      delivery/
+      content/
+      crm/
+      academic/  students/  auth/  physical/
+      reports/              ← read-only stats, one query layer
+```
+
+## Rules every module follows
+
+1. **Layers:** `routes.js → service.js → repository.js`, plus `rules.js` for pure logic.
+   - `rules.js` — pure functions, **no database**, fully unit-tested. Business decisions live here.
+   - `repository.js` — the only file that talks to Prisma.
+   - `service.js` — loads data via the repository, applies the rules.
+   - `routes.js` — HTTP only: parse input, check permission, call service.
+2. **Ownership:** a table is written by exactly one module. Other modules ask that module.
+   (e.g. only `payments` changes `Payment.status`.)
+3. **One DB client:** always `require('../../core/db')`. Never `new PrismaClient()`.
+   The old code created 80 clients — that is what causes "Too many connections".
+4. **Permissions on every route:** `requireRole(...)` / `requireStudent` from `core/auth`.
+   A route without one is a bug.
+5. **Modules talk through events** for side effects: `payments` emits `payment.approved`;
+   `delivery`, `crm` listen. No more copy-pasted `syncLeadEnrollment` calls.
+6. **Tests first** for every rule, written from a real staff report.
+   `npm test` must pass before anything goes live.
+7. **No deploys during working hours** without a staging check.
+
+## Step plan & status
+
+| Step | Module | What it fixes | Status |
+|------|--------|---------------|--------|
+| 0 | `core` | single DB client, auth, errors, event bus, `/api/v2` | ✅ done |
+| 1 | `entitlement` | one source of truth for student access; guards on leaking endpoints | ✅ done |
+| 2 | `payments` | status state machine, server-side pricing, PayHere notify fix, no double approve | ⏳ next |
+| 3 | `delivery` | deliveries derived from entitlement + daily reconciliation job | |
+| 4 | `content` | web + app use the same content API (no "web ok, app wrong") | |
+| 5 | `crm` | lead enrollment status derived from entitlement, not copied | |
+| 6 | `reports` | one query layer for all dashboards & stats | |
+| 7 | cleanup | delete replaced controllers; remaining modules | |
+
+## Entitlement rules (step 1)
+
+Source of truth: `src/modules/entitlement/rules.js` (tested in `rules.test.js`).
+
+Payment codes used in the DB:
+- `payment_type`: `1` Monthly, `2` Installment, `3` Full
+- `status`: `0` Pending, `1` Approved, `2` Rejected, `4` Post-pay (temporary), `5` Trash, `-2` Under-paid
+
+A payment gives access when:
+- status is `1` (Approved), **or**
+- status is `4` (Post-pay) **and** `valid_until` is in the future (expired post-pay = no access,
+  even if nobody opened the admin payments page).
+
+An installment payment (`2`) gives no access while its batch is overdue, unless the student
+also has an approved monthly/full payment for that batch.
+
+Scope of access:
+- **Monthly (1):** only the courses in the paid group (month), matching the paid subjects.
+  Paying September never unlocks October.
+- **Full / Installment (2, 3):** the paid subjects across the whole batch, same class type
+  (theory / paper), matched by subject name/code.
+- A payment with no subject list covers the whole group.
+
+### What step 1 changed in the old code
+
+- **All 80 `new PrismaClient()` → one shared client** (`src/core/db.js`). Some were created
+  on every request in `adminController` / `aiVerificationController`.
+- **Guards** (`src/modules/entitlement/guard.js`) on endpoints that served content without
+  checking payment:
+  - `GET /api/student/module/:id` (web) and `GET /api/mobile/module/:id` (app) — any course id
+    returned that course's recordings and live links.
+  - `GET /api/mobile/download-rec/:contentId` — any logged-in student could download any recording.
+- **Content dedupe** (`src/modules/content/rules.js`): old code merged different lessons that had
+  the same title, so students saw another lecturer's recording/link. Now title + media must match.
+- **New support API** for staff: `GET /api/v2/entitlements/students/:studentId/courses/:courseId`
+  answers "why can't this student see this class?" with a reason, no ghost login needed.
+
+### Safe rollout (IMPORTANT)
+
+Guards start in **shadow mode**: they never block, they log:
+
+```
+[entitlement:shadow] would deny student=123 course=45 reason=subject-or-month-not-paid
+```
+
+1. Deploy. Watch the server log for a few days.
+2. For each "would deny" line, check: is the student really unpaid? If a paid student shows up,
+   the rule is wrong — fix `rules.js` + add a test.
+3. When the log only shows genuinely unpaid students, set `ENTITLEMENT_ENFORCE=true` in `.env`
+   and restart. To roll back instantly, remove it and restart.
+
+### Known leaks left for step 4 (content)
+
+`GET /api/mobile/live-portal` and `GET /api/zoom-direct-link/:contentId` return Zoom links
+**without any login**, because the app opens them in an external browser. They need signed,
+short-lived links — done in the content module, together with an app update.
+
+## Running tests
+
+```
+cd backend
+npm test
+```
+
+Tests use Node's built-in test runner (no database needed for rules).

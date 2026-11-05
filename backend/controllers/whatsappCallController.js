@@ -1,7 +1,7 @@
 const axios = require('axios');
 
 const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const prisma = require('../src/core/db');
 
 const { launchIvrBot } = require('../services/ivrBot');
 
@@ -1367,7 +1367,6 @@ const processAiAnalysisInBackground = async (filePath, filename, callId, leadPho
         } else {
             console.log(`[WhatsApp Call Background] No callId provided, skipping DB update for AI analysis`);
         }
-        await prisma.$disconnect();
     } catch (error) {
         console.error('Error in background AI analysis:', error);
     }

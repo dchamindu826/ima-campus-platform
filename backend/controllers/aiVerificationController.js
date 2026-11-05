@@ -1,5 +1,5 @@
 const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const prisma = require('../src/core/db');
 const xlsx = require('xlsx');
 const csv = require('csv-parser');
 const stream = require('stream');
@@ -677,7 +677,7 @@ exports.uploadBankStatement = async (req, res) => {
         }
 
         const { PrismaClient } = require('@prisma/client');
-        const prisma = new PrismaClient();
+        const prisma = require('../src/core/db');
 
         let configs = {};
         const configSetting = await prisma.appSetting.findUnique({ where: { key: 'GSHEET_CONFIGS' } });
@@ -2107,7 +2107,7 @@ exports.startScheduledBulkVerification = async (queueType) => {
     try {
         console.log(`[AI-Scheduler] Fetching all pending slips for queue: ${queueType}`);
         const { PrismaClient } = require('@prisma/client');
-        const prisma = new PrismaClient();
+        const prisma = require('../src/core/db');
         
         const pendingSlips = await prisma.payment.findMany({
             where: {

@@ -1,7 +1,7 @@
 const { PrismaClient } = require('@prisma/client');
 const jwt = require('jsonwebtoken');
 const { markPaymentOnGSheet } = require('../utils/gsheetUpdater');
-const prisma = new PrismaClient();
+const prisma = require('../src/core/db');
 
 const safeJson = (data) => JSON.parse(JSON.stringify(data, (key, value) => typeof value === 'bigint' ? value.toString() : value));
 

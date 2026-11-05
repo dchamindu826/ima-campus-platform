@@ -4,7 +4,7 @@ const multer = require('multer');
 const path = require('path');
 const { verifyToken, requireStaff, requireAdmin } = require('../middlewares/authMiddleware');
 const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const prisma = require('../src/core/db');
 
 const controller = require('../controllers/contentController'); 
 

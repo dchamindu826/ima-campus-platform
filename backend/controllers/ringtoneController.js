@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const prisma = require('../src/core/db');
 
 const RINGTONE_DIR = path.join(__dirname, '../../storage/ringtone');
 

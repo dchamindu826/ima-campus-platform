@@ -55,7 +55,7 @@ function readTail(filePath, maxBytes = 64 * 1024, maxLines = 35) {
 exports.getSystemOverview = async (req, res) => {
     try {
         const { PrismaClient } = require('@prisma/client');
-        const prisma = new PrismaClient();
+        const prisma = require('../src/core/db');
 
         // Safe fetch of simple stats
         const paymentsCount = await prisma.payment.count();
@@ -151,7 +151,7 @@ exports.getAuditLogs = async (req, res) => {
         }
 
         const { PrismaClient } = require('@prisma/client');
-        const prisma = new PrismaClient();
+        const prisma = require('../src/core/db');
 
         const offset = (page - 1) * limit;
 
@@ -185,7 +185,7 @@ exports.getAuditLogs = async (req, res) => {
 exports.getAdminProfile = async (req, res) => {
     try {
         const { PrismaClient } = require('@prisma/client');
-        const prisma = new PrismaClient();
+        const prisma = require('../src/core/db');
         const userId = req.user.id || req.user.userId;
         if (!req.user || !userId) {
             return res.status(401).json({ error: "Unauthorized" });

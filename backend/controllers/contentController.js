@@ -1,5 +1,5 @@
 const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const prisma = require('../src/core/db');
 const admin = require("firebase-admin");
 const axios = require('axios');
 const { getScopedBusinessId } = require('../utils/scopeUtils');

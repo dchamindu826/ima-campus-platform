@@ -1,7 +1,7 @@
 const { getScopedBusinessId } = require("../utils/scopeUtils");
 const { getAvatarForPhone } = require("../utils/avatarUtils");
 const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const prisma = require('../src/core/db');
 const crypto = require('crypto');
 const bcrypt = require('bcrypt');
 const axios = require('axios');

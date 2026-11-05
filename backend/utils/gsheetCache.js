@@ -1,6 +1,6 @@
 const { google } = require('googleapis');
 const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const prisma = require('../src/core/db');
 
 let gsheetCache = {};
 let isFetching = false;
