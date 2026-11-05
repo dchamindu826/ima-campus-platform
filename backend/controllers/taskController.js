@@ -238,15 +238,8 @@ exports.rejectTask = async (req, res) => {
             await prisma.content.delete({ where: { id: task.contentId } }).catch(()=>console.log("Content already deleted"));
         }
 
-        if (task.assignedTo) {
-            try {
-                await prisma.staffKpi.create({
-                    data: {
-                        staffId: task.assignedTo, taskId: task.id, mark: -1, reason: `Task Rejected: ${reason}`
-                    }
-                });
-            } catch(kpiErr) { console.log("KPI Log creation skipped/failed"); }
-        }
+        // NOTE: a "-1 KPI mark on rejection" was intended here, but there is no StaffKpi
+        // table in the database, so it never saved anything. Add the table first if needed.
 
         await prisma.task.update({
             where: { id: parseInt(taskId) },

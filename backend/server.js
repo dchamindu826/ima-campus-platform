@@ -164,6 +164,10 @@ app.use('/api/storage/petty_cash', express.static(path.join(__dirname, 'storage/
 app.get('/api/public/whatsapp-recording/:filename', require('./controllers/whatsappCallController').getRecording);
 
 // 🔥 SMART WHATSAPP ROTATOR & INSTANT QR REDIRECT 🔥
+// ================= STAFF GATE (see src/core/staffGate.js) =================
+// Staff-only APIs need a logged-in NON-student account. Must stay above all routes.
+app.use(require('./src/core/staffGate').staffGate());
+
 app.use(require('./routes/whatsappRotatorRoutes'));
 
 // ================= GLOBAL AUDIT TRAIL =================

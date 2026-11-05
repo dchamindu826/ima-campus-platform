@@ -49,7 +49,7 @@ exports.getStaffOverview = async (req, res) => {
         const batches = await prisma.batch.findMany({
             where: { 
                 businessId: { in: businessIds },
-                is_active: true
+                status: 1 // Batch has no is_active column; status 1 = active/visible
             },
             select: { id: true, name: true, businessId: true }
         });
@@ -72,7 +72,7 @@ exports.getStaffOverview = async (req, res) => {
 
         const timetables = await prisma.timetable.findMany({
             where: {
-                batch_id: { in: batchIds },
+                batchId: { in: batchIds },
                 date: {
                     gte: today,
                     lte: nextWeek
@@ -83,17 +83,16 @@ exports.getStaffOverview = async (req, res) => {
             },
             take: 10,
             include: {
-                batch: { select: { name: true } },
-                subject: { select: { subject_name: true } }
+                batch: { select: { name: true } }
             }
         });
 
         const formattedTimetables = timetables.map(t => ({
             id: t.id,
-            title: t.title || t.subject?.subject_name || 'Class',
+            title: t.title || t.subjectName || 'Class',
             date: t.date,
-            startTime: t.start_time,
-            endTime: t.end_time,
+            startTime: t.startTime,
+            endTime: t.endTime,
             batchName: t.batch?.name,
             type: t.type
         }));

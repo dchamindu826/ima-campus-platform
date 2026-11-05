@@ -67,6 +67,7 @@ backend/
 |------|--------|---------------|--------|
 | 0 | `core` | single DB client, auth, errors, event bus, `/api/v2` | ✅ done |
 | 1 | `entitlement` | one source of truth for student access; guards on leaking endpoints | ✅ done |
+| 1.5 | security | staff gate on all staff APIs; 5 schema-mismatch crashes | ✅ done |
 | 2 | `payments` | status state machine, server-side pricing, PayHere notify fix, no double approve | ⏳ next |
 | 3 | `delivery` | deliveries derived from entitlement + daily reconciliation job | |
 | 4 | `content` | web + app use the same content API (no "web ok, app wrong") | |
@@ -130,6 +131,30 @@ Guards start in **shadow mode**: they never block, they log:
 `GET /api/mobile/live-portal` and `GET /api/zoom-direct-link/:contentId` return Zoom links
 **without any login**, because the app opens them in an external browser. They need signed,
 short-lived links — done in the content module, together with an app update.
+
+## Step 1.5 — security (done)
+
+`src/core/staffGate.js` is mounted at the top of `server.js`. Any path under a staff prefix
+(`/api/admin`, `/api/delivery`, `/api/team`, `/api/reminders`, CRM, call center, finance, ...)
+now needs a valid token of a **non-student** account. Webhooks stay public.
+
+Verified by probing all 666 routes with no token, a student token and a coordinator token:
+- reachable without login: 77 → 33 (only intended public routes left)
+- staff routes a student could reach: ~470 → 0
+- staff routes the gate blocks for a coordinator: 0
+
+Schema-mismatch crashes fixed: staff app dashboard (`Batch.is_active`, timetable fields),
+`/api/admin/whatsapp-call/channels` (`User.username`), student chat businesses
+(`Lead.businessId`), mobile Google sign-in (no `User.email` — now a clear message),
+CRM campaign archive (no longer claims success while changing nothing), removed the
+non-existent `staffKpi` write.
+
+Still open (planned):
+- `method: 'payhere'` in enrollment auto-approves on the client's word → **step 2**
+  (together with the PayHere notify fix, otherwise genuine online payers lose access).
+- `/api/mobile/live-portal`, `/api/zoom-direct-link/:id` need signed links → **step 4**.
+- `/api/public/whatsapp-recording/:filename` serves call recordings without login → step 5.
+- `freeSeminarController.archiveCampaign` is dead code (not routed) with the same bug.
 
 ## Running tests
 

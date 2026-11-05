@@ -101,7 +101,7 @@ router.get('/whatsapp-call/channels', async (req, res) => {
                 id: true,
                 firstName: true,
                 lastName: true,
-                username: true,
+                phone: true, // User has no username column (this route always returned 500)
                 role: true,
                 department: true,
                 businessType: true,
