@@ -1,4 +1,5 @@
 const cron = require('node-cron');
+const jobs = require('../src/core/jobs'); // runs only in the jobs process (see src/core/jobs.js)
 const { exec } = require('child_process');
 const fs = require('fs');
 const path = require('path');
@@ -41,7 +42,7 @@ function runBackup() {
 }
 
 // Schedule daily at 02:30 AM (off-peak hours) instead of every 30 minutes
-cron.schedule('30 2 * * *', () => {
+jobs.schedule('daily-db-backup', '30 2 * * *', () => {
     runBackup();
 });
 

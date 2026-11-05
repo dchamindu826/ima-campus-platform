@@ -68,6 +68,7 @@ backend/
 | 0 | `core` | single DB client, auth, errors, event bus, `/api/v2` | ✅ done |
 | 1 | `entitlement` | one source of truth for student access; guards on leaking endpoints | ✅ done |
 | 1.5 | security | staff gate on all staff APIs; 5 schema-mismatch crashes | ✅ done |
+| 1.6 | process roles | background jobs run in a separate `worker` process (`IMA_ROLE`) | ✅ done (LMS/CRM split: later) |
 | 2 | `payments` | status state machine, server-side pricing, PayHere notify fix, no double approve | ⏳ next |
 | 3 | `delivery` | deliveries derived from entitlement + daily reconciliation job | |
 | 4 | `content` | web + app use the same content API (no "web ok, app wrong") | |
@@ -155,6 +156,28 @@ Still open (planned):
 - `/api/mobile/live-portal`, `/api/zoom-direct-link/:id` need signed links → **step 4**.
 - `/api/public/whatsapp-recording/:filename` serves call recordings without login → step 5.
 - `freeSeminarController.archiveCampaign` is dead code (not routed) with the same bug.
+
+## Step 1.6 — process roles (done)
+
+`src/core/jobs.js`: every cron / repeating job is registered through `jobs.schedule()` /
+`jobs.every()`. The same `server.js` runs in one of three roles via `IMA_ROLE`:
+
+| IMA_ROLE | HTTP + sockets | background jobs |
+|----------|----------------|-----------------|
+| `all` (default, unset) | yes | yes — same as before |
+| `api` | yes | no |
+| `worker` | no port opened | yes |
+
+Jobs (10): free-seminar auto-assign (1 min), live-class reminders (1 min), AI slip
+verification schedule (1 min), delivery status (hourly, 08:00), DB backup (02:30),
+YouTube cookies, quota reset, custom task generator, auto round push (midnight).
+The startup log prints `[jobs] role=... jobs=N/10 [...]`.
+
+**Never run two processes with jobs on the same database** (e.g. `all` + `worker`, or a
+test backend in `all` pointing at the production DB): every job would run twice.
+
+Still to do (needs the nginx config): split `api` further into `lms` (students) and
+`crm` (staff + WhatsApp webhooks + call sockets).
 
 ## Running tests
 

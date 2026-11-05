@@ -1,4 +1,5 @@
 const cron = require('node-cron');
+const jobs = require('../src/core/jobs'); // runs only in the jobs process (see src/core/jobs.js)
 const { PrismaClient } = require('@prisma/client');
 const prisma = require('../src/core/db');
 const admin = require('firebase-admin');
@@ -26,7 +27,7 @@ function parseTimeComponents(timeStr) {
 
 // 15-minute live class reminder and Auto Delete Cron Job
 // Runs every minute
-cron.schedule('* * * * *', async () => {
+jobs.schedule('live-class-reminders-and-cleanup', '* * * * *', async () => {
     try {
         const now = new Date();
 
