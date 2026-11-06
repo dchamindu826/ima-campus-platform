@@ -20,3 +20,12 @@ test('free cards (amount 0) are not auto-delivered; normal approved payments are
     assert.equal(R.autoFixable({ status: 1, amount: 0 }), false);
     assert.equal(R.autoFixable({ status: 0, amount: 6500 }), false);
 });
+
+test('rule: Discount and Free Card approvals are manual-only, never auto-delivered', () => {
+    assert.equal(R.manualOnlyReason({ amount: 0, remark: '[Free Card Granted]\nReason: x' }), 'free-card');
+    assert.equal(R.manualOnlyReason({ amount: 0, remark: null }), 'free-card');
+    assert.equal(R.manualOnlyReason({ amount: 3000, remark: '[ADMIN]: Custom Breakdown: [ICT: LKR 3000]\nReason: sibling' }), 'discount');
+    assert.equal(R.manualOnlyReason({ amount: 6500, remark: '[SYSTEM]: Wallet adjusted by LKR +500' }), null);
+    assert.equal(R.autoFixable({ status: 1, amount: 3000, remark: 'Custom Breakdown: [ICT: LKR 3000]' }), false);
+    assert.equal(R.autoFixable({ status: 1, amount: 6500, remark: '' }), true);
+});
