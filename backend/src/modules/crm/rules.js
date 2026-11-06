@@ -101,7 +101,14 @@ function deriveLeadEnrollment(lead, payments, now = new Date(), ctx = {}) {
     if (relevant.length === 0) return { status: 'NON_ENROLLED', intention: null, evidence: false };
 
     const target = targetMonth(now, ctx.switchDays);
-    const type = (p) => parseInt(p.payment_type, 10) || PAYMENT_TYPE.MONTHLY;
+    // Like the stats pages: a group named "...FULL..." / "...INSTALLMENT..." decides the type
+    // even when payment_type was saved as monthly.
+    const type = (p) => {
+        const g = String(groupNames.get(Number(p.groupId)) || '').toUpperCase();
+        if (g.includes('FULL')) return PAYMENT_TYPE.FULL;
+        if (g.includes('INSTALLMENT')) return PAYMENT_TYPE.INSTALLMENT;
+        return parseInt(p.payment_type, 10) || PAYMENT_TYPE.MONTHLY;
+    };
     const coversNow = (p) => {
         if (type(p) === PAYMENT_TYPE.FULL) return true;
         if (type(p) === PAYMENT_TYPE.INSTALLMENT) return !overdue.has(Number(p.batchId));
@@ -110,9 +117,9 @@ function deriveLeadEnrollment(lead, payments, now = new Date(), ctx = {}) {
     const byStrength = (a, b) => [3, 2, 1].indexOf(type(a)) - [3, 2, 1].indexOf(type(b));
 
     const active = relevant.filter((p) => statusGrantsAccess(p, now) && coversNow(p)).sort(byStrength)[0];
-    if (active) return { status: 'ENROLLED', intention: intentionOf(active.payment_type), paymentId: active.id, evidence: true };
+    if (active) return { status: 'ENROLLED', intention: intentionOf(type(active)), paymentId: active.id, evidence: true };
     const pending = relevant.filter((p) => PENDING_STATUSES.includes(Number(p.status)) && coversNow(p)).sort(byStrength)[0];
-    if (pending) return { status: 'PAYMENT_PROCESSING', intention: intentionOf(pending.payment_type), paymentId: pending.id, evidence: true };
+    if (pending) return { status: 'PAYMENT_PROCESSING', intention: intentionOf(type(pending)), paymentId: pending.id, evidence: true };
 
     const everPaid = relevant.filter((p) => statusGrantsAccess(p, now) || Number(p.status) === STATUS.APPROVED).sort(byStrength)[0];
     if (everPaid) {

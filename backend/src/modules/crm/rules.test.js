@@ -90,3 +90,10 @@ test('monthly / full / installment rules', () => {
     const od = d([m({ payment_type: 2 })], { overdueBatchIds: new Set([5]) });
     assert.deepEqual([od.status, od.reason], ['NON_ENROLLED', 'installment-overdue']);
 });
+
+test('a FULL group saved with payment_type monthly still counts as full (like the stats pages)', () => {
+    const now = new Date('2026-11-06');
+    const groupNames = new Map([[20, '2027 A/L FULL PAYMENT']]);
+    const r = R.deriveLeadEnrollment({ batchId: 5 }, [{ id: 1, batchId: 5, groupId: 20, status: 1, payment_type: 1, created_at: new Date('2026-06-01') }], now, { groupNames });
+    assert.deepEqual([r.status, r.intention], ['ENROLLED', 'FULL']);
+});
