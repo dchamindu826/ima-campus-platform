@@ -6,6 +6,7 @@
 // safe changes (marking leads ENROLLED / PAYMENT_PROCESSING). Downgrades are only reported.
 
 const rules = require('./rules');
+const { computeOverdueBatchIds } = require('../entitlement/rules');
 
 const db = () => require('../../core/db');
 const CAMPAIGNS = ['AFTER_SEMINAR', 'FREE_SEMINAR', 'OPEN_SEMINAR'];
@@ -31,14 +32,28 @@ async function loadIndex() {
     }
     const payments = await db().payment.findMany({
         where: { status: { in: [0, 1, 2, 4, -2] }, studentId: { not: null } },
-        select: { id: true, studentId: true, batchId: true, businessId: true, status: true, payment_type: true, valid_until: true },
+        select: {
+            id: true, studentId: true, batchId: true, businessId: true, groupId: true, status: true, payment_type: true,
+            valid_until: true, due_date: true, installment_no: true, subjects: true, created_at: true, updatedAt: true,
+        },
     });
     const paysByStudent = new Map();
     for (const p of payments) {
         if (!paysByStudent.has(p.studentId)) paysByStudent.set(p.studentId, []);
         paysByStudent.get(p.studentId).push(p);
     }
-    return { byPhone, byLast7, paysByStudent };
+    const groups = await db().group.findMany({ select: { id: true, name: true } });
+    const groupNames = new Map(groups.map((g) => [g.id, g.name]));
+    const instBatchIds = [...new Set(payments.filter((p) => Number(p.payment_type) === 2).map((p) => p.batchId).filter(Boolean))];
+    const plans = instBatchIds.length
+        ? await db().installment.findMany({ where: { batchId: { in: instBatchIds } }, select: { batchId: true, subjectCount: true, details: true } })
+        : [];
+    const plansByBatchId = new Map();
+    for (const pl of plans) {
+        if (!plansByBatchId.has(pl.batchId)) plansByBatchId.set(pl.batchId, []);
+        plansByBatchId.get(pl.batchId).push(pl);
+    }
+    return { byPhone, byLast7, paysByStudent, groupNames, plansByBatchId };
 }
 
 /**
@@ -61,7 +76,7 @@ async function enrollmentReport({ batchId, businessId, now = new Date() } = {}) 
     // One person counts once per batch: the stats pages give the enrollment to ONE lead
     // (the newest). Leads of a person who already has an ENROLLED lead in that batch are
     // "secondary" and are left alone, so conversions are not counted twice.
-    const personKey = (lead) => `${lead.batchId || 'none'}|${rules.normPhone(lead.phone)}`;
+    const personKey = (lead) => `${lead.batchId || 'biz' + rules.leadBusinessId(lead)}|${rules.normPhone(lead.phone)}`;
     const enrolledPeople = new Set(leads.filter((l) => l.enrollmentStatus === 'ENROLLED' && rules.normPhone(l.phone)).map(personKey));
     const candidates = new Map(); // personKey → newest should-be-enrolled change
     let secondaryLeads = 0;
@@ -71,13 +86,14 @@ async function enrollmentReport({ batchId, businessId, now = new Date() } = {}) 
         if (businessId && bizId !== Number(businessId)) continue;
         const ph = rules.normPhone(lead.phone);
         if (ph) {
-            const k = `${lead.campaignType}|${lead.batchId || 'none'}|${ph}`;
+            const k = `${lead.campaignType}|${lead.batchId || 'biz' + bizId}|${ph}`;
             dupKeys.set(k, (dupKeys.get(k) || 0) + 1);
         }
         const exactStudents = ph ? [...(idx.byPhone.get(ph) || [])] : [];
         if (ph && exactStudents.length === 0 && idx.byLast7.has(ph.slice(-7))) last7OnlyMatches++;
         const payments = exactStudents.flatMap((sid) => idx.paysByStudent.get(sid) || []);
-        const derived = rules.deriveLeadEnrollment({ batchId: lead.batchId, businessId: bizId }, payments, now);
+        const overdueBatchIds = new Set(exactStudents.flatMap((sid) => [...computeOverdueBatchIds(idx.paysByStudent.get(sid) || [], idx.plansByBatchId, now)]));
+        const derived = rules.deriveLeadEnrollment({ batchId: lead.batchId, businessId: bizId }, payments, now, { overdueBatchIds, groupNames: idx.groupNames });
         const change = rules.leadChange(lead, derived);
         if (!change) continue;
         const row = { leadId: lead.id, batchId: lead.batchId, campaignType: lead.campaignType, studentIds: exactStudents, createdAt: lead.createdAt, ...change };
@@ -129,4 +145,27 @@ async function dailyReconcile() {
     return { ...r.counts, updated: fixed };
 }
 
-module.exports = { enrollmentReport, applySafeChanges, dailyReconcile, AUTOFIX_KINDS };
+/**
+ * Enrollment for ONE lead from one student's payments — used at payment approval
+ * (paymentController.syncLeadEnrollment) so approval and the daily job agree.
+ * @returns {Promise<{ status, intention, evidence, reason? }>}
+ */
+async function deriveForLead(lead, payments, now = new Date()) {
+    const groupIds = [...new Set(payments.map((p) => p.groupId).filter(Boolean))];
+    const groups = groupIds.length ? await db().group.findMany({ where: { id: { in: groupIds } }, select: { id: true, name: true } }) : [];
+    const instBatchIds = [...new Set(payments.filter((p) => Number(p.payment_type) === 2).map((p) => p.batchId).filter(Boolean))];
+    const plans = instBatchIds.length
+        ? await db().installment.findMany({ where: { batchId: { in: instBatchIds } }, select: { batchId: true, subjectCount: true, details: true } })
+        : [];
+    const plansByBatchId = new Map();
+    for (const pl of plans) {
+        if (!plansByBatchId.has(pl.batchId)) plansByBatchId.set(pl.batchId, []);
+        plansByBatchId.get(pl.batchId).push(pl);
+    }
+    return rules.deriveLeadEnrollment(
+        { batchId: lead.batchId, businessId: rules.leadBusinessId(lead) }, payments, now,
+        { overdueBatchIds: computeOverdueBatchIds(payments, plansByBatchId, now), groupNames: new Map(groups.map((g) => [g.id, g.name])) },
+    );
+}
+
+module.exports = { enrollmentReport, applySafeChanges, dailyReconcile, deriveForLead, AUTOFIX_KINDS };

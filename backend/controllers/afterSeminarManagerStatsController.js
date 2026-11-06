@@ -634,19 +634,14 @@ exports.getNewInquiryStats = async (req, res) => {
                 .filter(l => primaryEnrolledLeadIds.has(l.id) && l.enrollmentStatus !== 'ENROLLED' && l.enrollmentStatus !== 'PAID')
                 .map(l => l.id);
             if (unsyncedIds.length > 0) {
-                try {
-                    await prisma.lead.updateMany({
-                        where: { id: { in: unsyncedIds } },
-                        data: { enrollmentStatus: 'ENROLLED' }
-                    });
-                    leads.forEach(l => {
-                        if (unsyncedIds.includes(l.id)) {
-                            l.enrollmentStatus = 'ENROLLED';
-                        }
-                    });
-                } catch (syncErr) {
-                    console.error("Auto-syncing lead enrollment status error:", syncErr);
-                }
+                // Display only. Writing ENROLLED here (any payment, any month) undid the monthly
+                // reset, so non-paid students vanished from the non-paid call list.
+                // The DB is updated by payment approval + the crm-enrollment-reconcile job.
+                leads.forEach(l => {
+                    if (unsyncedIds.includes(l.id)) {
+                        l.enrollmentStatus = 'ENROLLED';
+                    }
+                });
             }
         }
 
@@ -849,19 +844,14 @@ exports.getOpenSeminarStats = async (req, res) => {
                 .filter(l => primaryEnrolledLeadIds.has(l.id) && l.enrollmentStatus !== 'ENROLLED' && l.enrollmentStatus !== 'PAID')
                 .map(l => l.id);
             if (unsyncedIds.length > 0) {
-                try {
-                    await prisma.lead.updateMany({
-                        where: { id: { in: unsyncedIds } },
-                        data: { enrollmentStatus: 'ENROLLED' }
-                    });
-                    leads.forEach(l => {
-                        if (unsyncedIds.includes(l.id)) {
-                            l.enrollmentStatus = 'ENROLLED';
-                        }
-                    });
-                } catch (syncErr) {
-                    console.error("Auto-syncing lead enrollment status error in open sem:", syncErr);
-                }
+                // Display only. Writing ENROLLED here (any payment, any month) undid the monthly
+                // reset, so non-paid students vanished from the non-paid call list.
+                // The DB is updated by payment approval + the crm-enrollment-reconcile job.
+                leads.forEach(l => {
+                    if (unsyncedIds.includes(l.id)) {
+                        l.enrollmentStatus = 'ENROLLED';
+                    }
+                });
             }
         }
 

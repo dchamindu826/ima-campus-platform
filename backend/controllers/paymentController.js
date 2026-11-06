@@ -14,7 +14,7 @@ const syncLeadEnrollment = async (studentId, paymentType, payment) => {
             where: { id: parseInt(studentId) },
             include: {
                 payments: {
-                    where: { status: { in: [0, 1, 4] } },
+                    where: { status: { in: [0, 1, 2, 4, -2] } },
                     orderBy: { created_at: 'desc' },
                     include: { batch: true }
                 }
@@ -73,30 +73,17 @@ const syncLeadEnrollment = async (studentId, paymentType, payment) => {
         });
 
         if (leads.length > 0) {
+            const crmService = require('../src/modules/crm/service');
             for (const lead of leads) {
-                const leadBatchId = lead.batchId;
-                let targetStatus = 'NON_ENROLLED';
-                let targetIntention = 'NOT_DECIDED';
-
-                if (leadBatchId && approvedBatchIds.has(leadBatchId)) {
-                    targetStatus = 'ENROLLED';
-                    const batchPay = batchPaymentMap.get(leadBatchId);
-                    const pType = parseInt(batchPay?.payment_type || paymentType || 1);
-                    targetIntention = pType === 3 ? 'FULL' : pType === 2 ? 'INSTALLMENT' : 'MONTHLY';
-                } else if (leadBatchId && pendingBatchIds.has(leadBatchId)) {
-                    targetStatus = 'PAYMENT_PROCESSING';
-                    const batchPay = batchPaymentMap.get(leadBatchId);
-                    const pType = parseInt(batchPay?.payment_type || paymentType || 1);
-                    targetIntention = pType === 3 ? 'FULL' : pType === 2 ? 'INSTALLMENT' : 'MONTHLY';
-                } else if (!leadBatchId && payment && payment.status === 1) {
-                    // Lead has no specific batch attached, check business match
-                    const leadBizId = lead.batch?.businessId || (lead.phone && lead.phone.includes('_BIZ_') ? parseInt(lead.phone.split('_BIZ_')[1]?.split('_')[0]) : null);
-                    if (!leadBizId || leadBizId === payment.businessId) {
-                        targetStatus = 'ENROLLED';
-                        const pType = parseInt(paymentType || 1);
-                        targetIntention = pType === 3 ? 'FULL' : pType === 2 ? 'INSTALLMENT' : 'MONTHLY';
-                    }
-                }
+                // One rule with the daily CRM job (src/modules/crm): full = whole batch,
+                // installment = until one is overdue, monthly = only the month being paid now
+                // (from the last week of a month that is the NEXT month). No payment for this
+                // lead's batch/business → the lead is left as it is.
+                const derived = await crmService.deriveForLead(lead, student.payments);
+                if (!derived.evidence) continue;
+                if (['PAID'].includes(lead.enrollmentStatus)) continue;
+                const targetStatus = derived.status;
+                const targetIntention = derived.intention || lead.paymentIntention || 'NOT_DECIDED';
 
                 if (lead.enrollmentStatus !== targetStatus || lead.paymentIntention !== targetIntention) {
                     await prisma.lead.update({

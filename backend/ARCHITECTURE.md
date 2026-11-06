@@ -303,8 +303,22 @@ otherwise only the newest lead is marked. `intention-update` fixes MONTHLY/FULL/
 already-enrolled lead. `enrolled-by-lookalike-number` = ENROLLED only because a different number
 with the same last 7 digits paid (first report: 20) — staff check these.
 
-Left for **5b** (after the report numbers are reviewed): switch the stats/getLeads pages to the
-same rule and remove their read-time DB writes.
+**Month rule (5c, business rule from the owner):**
+- FULL → ENROLLED for the whole batch.
+- INSTALLMENT → ENROLLED until an installment is overdue (entitlement `computeOverdueBatchIds`:
+  9-month batch / 3 installments → 2nd unpaid ⇒ not enrolled from month 4).
+- MONTHLY → ENROLLED only for the month being paid now. From the last week of a month the
+  target is the NEXT month (`targetMonth` = month of today + 7 days); a payment's month comes from
+  its group name ("NOVEMBER MONTH", Sinhala names too), else its date + 7 days.
+  So the monthly reset (`/after-seminar/retention/trigger-reset`) is no longer undone.
+- Monthly/installment drops are reported (`monthly-not-paid-this-month`, `installment-overdue`),
+  never auto-applied — the reset button also resets call phases.
+- Removed the read-time `ENROLLED` writes in `getLeads`, `getNewInquiryStats`, `getOpenSeminarStats`
+  (they marked anyone who EVER paid the batch, undoing the reset). Display is unchanged.
+- `syncLeadEnrollment` (payment approval) uses the same rule (`crm/service.deriveForLead`).
+- Same number in two businesses (6-month A/L and O/L) = two separate leads; never merged.
+
+Left for **5b**: switch the stats/getLeads *display* to the same rule.
 
 ## Running tests
 
