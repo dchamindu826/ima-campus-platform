@@ -70,8 +70,8 @@ backend/
 | 1.5 | security | staff gate on all staff APIs; 5 schema-mismatch crashes | ✅ done |
 | 1.6 | process roles | background jobs run in a separate `worker` process (`IMA_ROLE`) | ✅ done (LMS/CRM split: later) |
 | 2a | `payments` | online payments approved only by gateway confirmation; PayHere notify works; no double approve | ✅ done |
-| 2b | `payments` | server-side pricing (amount not trusted from client), installment rules | ⏳ next |
-| 3 | `delivery` | deliveries derived from entitlement + daily reconciliation job | |
+| 2b | `payments` | server-side price check (shadow → `PRICING_ENFORCE=true`) | ✅ done (shadow) |
+| 3 | `delivery` | deliveries derived from entitlement + daily reconciliation job | ⏳ next |
 | 4 | `content` | web + app use the same content API (no "web ok, app wrong") | |
 | 5 | `crm` | lead enrollment status derived from entitlement, not copied | |
 | 6 | `reports` | one query layer for all dashboards & stats | |
@@ -203,8 +203,27 @@ Covered: enrollment (`/enroll-with-slip`), due/installment (`/pay-due-online`), 
 approved payment can't be approved again (409), and status + wallet change in one
 transaction only if nobody changed the payment meanwhile.
 
-**Still trusted from the client (step 2b):** the enrollment amount. A student can still claim a
-lower price and pay that lower price online; staff see the amount. Fix needs server-side pricing.
+See step 2b for the enrollment amount.
+
+## Step 2b — server-side price check (done, shadow mode)
+
+`src/modules/payments/pricing.js` (pure, tested) computes what an enrollment should cost,
+mirroring the web enrollment page: `course.groupPrices` → `course.price`, the group's
+`discount_rules` (packagePrice / pricePerCourse / fixedDiscount, excluded courses don't count),
+installment first phase, minus wallet balance. `priceCheck.js` runs it on every enrollment.
+
+**Known difference:** the mobile app ignores `groupPrices` and the wallet, so app amounts can
+differ from web amounts. Logs show `client=app|web` for each mismatch.
+
+Rollout:
+1. Shadow (default): nothing changes; the log shows
+   `[pricing:shadow] UNDERPRICED student=.. client=.. claimed=.. expected=..`.
+2. Check those lines for a few days. Genuine students showing up = a pricing rule is missing
+   or the app price is wrong — fix that first.
+3. Then set `PRICING_ENFORCE=true` in `.env`: underpriced online payments stay pending for staff,
+   and underpriced slips get a `[PRICE CHECK]` remark. Remove it to roll back.
+
+Not checked (skipped, logged): upgrade flows (monthly→full, multi-upgrade).
 
 ## Running tests
 

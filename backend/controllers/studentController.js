@@ -980,12 +980,23 @@ exports.enrollStudent = async (req, res) => {
         const payService = require('../src/modules/payments/service');
         const payRules = require('../src/modules/payments/rules');
         const isOnline = Boolean(payRules.normGateway(safeMethod));
-        const onlineClaim = isOnline
-            ? await payService.claimOnlinePayment(safeMethod, orderId, { studentId: parseInt(studentId), amount })
-            : { approve: false, reason: 'not-online' };
+        // Server-side price check (src/modules/payments/priceCheck.js). Shadow mode only logs;
+        // with PRICING_ENFORCE=true an underpriced online payment is left pending for staff.
+        const priceCheck = require('../src/modules/payments/priceCheck');
+        const price = await priceCheck.checkEnrollmentPrice({ studentId, body: req.body, userAgent: req.headers && req.headers['user-agent'] });
+        const priceBlocked = priceCheck.enforcing() && price.supported && !price.ok;
+        const onlineClaim = !isOnline
+            ? { approve: false, reason: 'not-online' }
+            : priceBlocked
+                ? { approve: false, reason: `price-below-expected (paid ${price.claimed}, expected ${price.expected})` }
+                : await payService.claimOnlinePayment(safeMethod, orderId, { studentId: parseInt(studentId), amount });
         const initialStatus = onlineClaim.approve ? 1 : 0;
         // Pending online payments carry a marker, so a late gateway confirmation can approve them.
         const tagPendingOnline = async (payment) => {
+            if (priceBlocked && !isOnline) {
+                const note = `[PRICE CHECK] Student entered LKR ${price.claimed}, system price LKR ${price.expected}. Check before approving.`;
+                return prisma.payment.update({ where: { id: payment.id }, data: { remark: payment.remark ? `${payment.remark}\n${note}` : note } });
+            }
             if (!isOnline || initialStatus === 1 || !orderId) return payment;
             const note = `${payRules.onlineMarker(safeMethod, orderId)} Waiting for gateway confirmation (${onlineClaim.reason})`;
             console.warn(`[Enroll] ${safeMethod} payment ${payment.id} for student ${studentId} left PENDING: ${onlineClaim.reason}`);
