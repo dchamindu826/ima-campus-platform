@@ -58,3 +58,35 @@ test('business from batch or _BIZ_ suffix', () => {
     assert.equal(R.leadBusinessId({ phone: '0771234567_BIZ_3_BATCH_8' }), 3);
     assert.equal(R.leadBusinessId({ phone: '0771234567' }), null);
 });
+
+test('month names in group titles', () => {
+    assert.equal(R.groupMonth('NOVEMBER MONTH'), 10);
+    assert.equal(R.groupMonth('Nov 2026 Theory'), 10);
+    assert.equal(R.groupMonth('නොවැම්බර් පන්තිය'), 10);
+    assert.equal(R.groupMonth('Sept batch'), 8);
+    assert.equal(R.groupMonth('Summary group'), null, '"mar" inside a word is not March');
+    assert.equal(R.groupMonth('FULL PAYMENT'), null);
+});
+
+test('target month switches in the last week', () => {
+    const ymOf = (y, m) => y * 12 + m;
+    assert.equal(R.targetMonth(new Date('2026-10-20')), ymOf(2026, 9), '20 Oct → October');
+    assert.equal(R.targetMonth(new Date('2026-10-26')), ymOf(2026, 10), '26 Oct → November');
+    assert.equal(R.targetMonth(new Date('2026-12-28')), ymOf(2027, 0), 'year end');
+});
+
+test('monthly / full / installment rules', () => {
+    const now = new Date('2026-11-06');
+    const groupNames = new Map([[10, 'OCTOBER MONTH'], [11, 'NOVEMBER MONTH'], [20, 'FULL PAYMENT']]);
+    const m = (o) => ({ id: 1, batchId: 5, status: 1, payment_type: 1, created_at: new Date('2026-10-01'), ...o });
+    const d = (pays, ctx = {}) => R.deriveLeadEnrollment({ batchId: 5 }, pays, now, { groupNames, ...ctx });
+    assert.equal(d([m({ groupId: 10 })]).status, 'NON_ENROLLED');
+    assert.equal(d([m({ groupId: 10 })]).reason, 'monthly-not-paid-this-month');
+    assert.equal(d([m({ groupId: 10 }), m({ id: 2, groupId: 11, created_at: new Date('2026-11-02') })]).status, 'ENROLLED');
+    assert.equal(d([m({ groupId: 11, status: 0, created_at: new Date('2026-11-02') })]).status, 'PAYMENT_PROCESSING');
+    const full = d([m({ groupId: 20, payment_type: 3, created_at: new Date('2026-06-01') })]);
+    assert.deepEqual([full.status, full.intention], ['ENROLLED', 'FULL']);
+    assert.equal(d([m({ payment_type: 2 })]).status, 'ENROLLED', 'installment, nothing overdue');
+    const od = d([m({ payment_type: 2 })], { overdueBatchIds: new Set([5]) });
+    assert.deepEqual([od.status, od.reason], ['NON_ENROLLED', 'installment-overdue']);
+});
