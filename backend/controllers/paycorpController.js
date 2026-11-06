@@ -88,6 +88,11 @@ exports.initPayment = async (req, res) => {
             console.log("Paycorp Init Response Status:", response.status);
 
             if (response.data && response.data.responseData && response.data.responseData.paymentPageUrl) {
+                // Remember the amount THIS server sent to Paycorp for this reqid.
+                await require('../src/modules/payments/service').recordGatewayStart('paycorp', response.data.responseData.reqid, {
+                    studentId: req.user?.userId || req.user?.id,
+                    amount: amountInCents / 100,
+                });
                 return res.json({
                     success: true,
                     paymentUrl: response.data.responseData.paymentPageUrl,
@@ -146,6 +151,14 @@ exports.completePayment = async (req, res) => {
 
         if (response.data && response.data.responseData) {
             const result = response.data.responseData;
+            if (result.responseCode === "00") {
+                // Server-to-server confirmation: the paid amount is the amount this server initiated.
+                const payService = require('../src/modules/payments/service');
+                const started = await payService.readRecord('paycorp', reqid);
+                const gatewayCents = result.transactionAmount && result.transactionAmount.paymentAmount;
+                const paidAmount = gatewayCents ? gatewayCents / 100 : (started && started.amount);
+                await payService.recordGatewayConfirmed('paycorp', reqid, { paidAmount, raw: { responseCode: result.responseCode, txnReference: result.txnReference || null } });
+            }
             return res.json({
                 success: true,
                 status: result.responseCode === "00" ? "success" : "failed",

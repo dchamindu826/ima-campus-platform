@@ -9,10 +9,8 @@
 //
 // Never call prisma.$disconnect() in request or job code: it is shared.
 
-const { PrismaClient } = require('@prisma/client');
-
-// Reuse across hot-reloads / repeated requires.
-const prisma = globalThis.__imaPrisma || new PrismaClient();
+// Reuse across hot-reloads / repeated requires (tests can also put a fake client here).
+const prisma = globalThis.__imaPrisma || new (require('@prisma/client').PrismaClient)();
 globalThis.__imaPrisma = prisma;
 
 // Kept for old code that reads `global.prisma`.

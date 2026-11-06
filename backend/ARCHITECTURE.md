@@ -69,7 +69,8 @@ backend/
 | 1 | `entitlement` | one source of truth for student access; guards on leaking endpoints | ✅ done |
 | 1.5 | security | staff gate on all staff APIs; 5 schema-mismatch crashes | ✅ done |
 | 1.6 | process roles | background jobs run in a separate `worker` process (`IMA_ROLE`) | ✅ done (LMS/CRM split: later) |
-| 2 | `payments` | status state machine, server-side pricing, PayHere notify fix, no double approve | ⏳ next |
+| 2a | `payments` | online payments approved only by gateway confirmation; PayHere notify works; no double approve | ✅ done |
+| 2b | `payments` | server-side pricing (amount not trusted from client), installment rules | ⏳ next |
 | 3 | `delivery` | deliveries derived from entitlement + daily reconciliation job | |
 | 4 | `content` | web + app use the same content API (no "web ok, app wrong") | |
 | 5 | `crm` | lead enrollment status derived from entitlement, not copied | |
@@ -178,6 +179,32 @@ test backend in `all` pointing at the production DB): every job would run twice.
 
 Still to do (needs the nginx config): split `api` further into `lms` (students) and
 `crm` (staff + WhatsApp webhooks + call sockets).
+
+## Step 2a — payments (done)
+
+`src/modules/payments/` — `rules.js` (pure), `service.js`, tests incl. an in-memory DB.
+
+**Online payments (PayHere / Paycorp)** are approved ONLY when the gateway confirmed them
+to this server. Server-side records live in the existing `AppSetting` table (no schema change):
+- `pg:<gateway>:<ref>` — written when the payment page opens (PayHere hash / Paycorp init) and
+  marked `verified` by PayHere notify (signature checked) or Paycorp complete (`responseCode 00`).
+- `pg-used:<gateway>:<ref>` — unique key, so one gateway payment approves one enrollment only.
+
+Flow: if the browser's enrollment call arrives first, the payment is saved **pending** with a
+remark tag `[ONLINE:payhere:ORD-...] Waiting for gateway confirmation (reason)`. When PayHere's
+notify arrives, it approves those pending payments (and runs delivery + CRM sync once).
+Staff can search a payment's remark for that tag; if a gateway never confirms, check the
+merchant portal and approve manually.
+
+Covered: enrollment (`/enroll-with-slip`), due/installment (`/pay-due-online`), PayHere notify
+(new `ORD-` orders + numeric due orders), Paycorp init/complete.
+
+**Staff approvals** (`paymentAction`, `approveInstallment`, AI auto-verify): an already
+approved payment can't be approved again (409), and status + wallet change in one
+transaction only if nobody changed the payment meanwhile.
+
+**Still trusted from the client (step 2b):** the enrollment amount. A student can still claim a
+lower price and pay that lower price online; staff see the amount. Fix needs server-side pricing.
 
 ## Running tests
 
