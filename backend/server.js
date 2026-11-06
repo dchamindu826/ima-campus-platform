@@ -263,6 +263,7 @@ require('./controllers/deliveryController');
 require('./services/backupService');
 // Delivery reconciliation (daily, worker only) — src/modules/delivery
 require('./src/modules/delivery/jobs');
+require('./src/modules/crm/jobs');
 
 // 🔥 GOOGLE SHEETS CACHE ENGINE 🔥
 const { initCacheJob } = require('./utils/gsheetCache');

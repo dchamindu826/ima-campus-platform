@@ -35,13 +35,25 @@ const syncLeadEnrollment = async (studentId, paymentType, payment) => {
         if (validLast7Digits.length === 0) return;
 
         // Find leads containing last 7 digits of the phone
-        const leads = await prisma.lead.findMany({
+        const last7Leads = await prisma.lead.findMany({
             where: {
                 campaignType: { in: ['AFTER_SEMINAR', 'FREE_SEMINAR', 'OPEN_SEMINAR'] },
                 OR: validLast7Digits.map(last7 => ({ phone: { contains: last7 } }))
             },
             include: { batch: true }
         });
+
+        // Last-7-digit matching also catches DIFFERENT people (077 1234567 vs 071 1234567).
+        // CRM_STRICT_PHONE=true keeps only leads with the same full number (src/modules/crm/rules).
+        // Until then the old behaviour stays and the difference is logged.
+        const crmRules = require('../src/modules/crm/rules');
+        const myPhones = new Set(crmRules.studentPhones(student));
+        const lookAlikes = last7Leads.filter(l => !myPhones.has(crmRules.normPhone(l.phone)));
+        const strictPhone = String(process.env.CRM_STRICT_PHONE || '').toLowerCase() === 'true';
+        if (lookAlikes.length > 0) {
+            console.warn(`[crm:${strictPhone ? 'strict' : 'shadow'}] student=${studentId} ${strictPhone ? 'skipped' : 'would skip'} ${lookAlikes.length} lead(s) matched only by last 7 digits: ${lookAlikes.map(l => l.id).join(',')}`);
+        }
+        const leads = strictPhone ? last7Leads.filter(l => myPhones.has(crmRules.normPhone(l.phone))) : last7Leads;
 
         // Map student payments by batchId and businessId
         const approvedBatchIds = new Set();
