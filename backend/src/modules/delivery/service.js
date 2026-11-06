@@ -14,6 +14,13 @@ const db = () => require('../../core/db');
 const paymentCtl = () => require('../../../controllers/paymentController');
 
 const MAX_SCAN = 1000;
+const LIVE = { notIn: ['Trash', 'Cancelled', 'Rejected'] };
+
+/** Tute names this student already has in any live delivery (any payment, any group). */
+async function studentTuteHistory(studentId) {
+    const ds = await db().delivery.findMany({ where: { studentId: String(studentId), status: LIVE }, include: { items: true } });
+    return ds.flatMap((d) => (d.items || []).map((i) => i.tuteName)).filter(Boolean);
+}
 
 /** @returns {Promise<{ missing: object[], awaitingManual: object[], scanned: number, truncated: boolean }>} */
 async function findMissingDeliveries({ days = 90 } = {}) {
@@ -30,7 +37,8 @@ async function findMissingDeliveries({ days = 90 } = {}) {
     for (const p of candidates) {
         let plan = null;
         try {
-            plan = await paymentCtl().createAutoDeliveryForPayment(p, false, { dryRun: true });
+            const skipTuteNames = await studentTuteHistory(p.studentId);
+            plan = await paymentCtl().createAutoDeliveryForPayment(p, false, { dryRun: true, skipTuteNames });
         } catch (err) {
             console.error(`[delivery:reconcile] dry run failed for payment ${p.id}:`, err);
         }
@@ -66,9 +74,13 @@ async function createMissingDelivery(paymentId) {
     if (p.status !== 1) return { created: false, reason: 'payment-not-approved' };
     const manual = rules.manualOnlyReason(p);
     if (manual) return { created: false, reason: `manual-only:${manual}` }; // staff use "Send to Delivery"
-    const existing = await db().delivery.findFirst({ where: { paymentId: p.id, status: { notIn: ['Trash', 'Cancelled', 'Rejected'] } } });
+    const existing = await db().delivery.findFirst({ where: { paymentId: p.id, status: LIVE } });
     if (existing) return { created: false, reason: 'already-exists', deliveryId: existing.id };
-    const d = await paymentCtl().createAutoDeliveryForPayment(p);
+    // Only the tutes the student has not received through any other payment.
+    const skipTuteNames = await studentTuteHistory(p.studentId);
+    const plan = await paymentCtl().createAutoDeliveryForPayment(p, false, { dryRun: true, skipTuteNames });
+    if (!plan || !Array.isArray(plan.plannedItems) || plan.plannedItems.length === 0) return { created: false, reason: 'already-delivered-elsewhere' };
+    const d = await paymentCtl().createAutoDeliveryForPayment(p, false, { skipTuteNames });
     if (!d) return { created: false, reason: 'nothing-to-deliver' };
     return { created: true, deliveryId: d.id };
 }
@@ -94,4 +106,4 @@ async function dailyReconcile() {
     return { missing: missing.length, awaitingManual: awaitingManual.length, orphans: orphans.length, created: fixed };
 }
 
-module.exports = { findMissingDeliveries, findOrphanDeliveries, createMissingDelivery, dailyReconcile };
+module.exports = { studentTuteHistory, findMissingDeliveries, findOrphanDeliveries, createMissingDelivery, dailyReconcile };

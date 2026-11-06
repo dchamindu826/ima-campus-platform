@@ -370,6 +370,16 @@ const createAutoDeliveryForPayment = async (payment, isSelfPicked = false, optio
             return true;
         });
 
+        // options.skipTuteNames: tutes this student already got through ANY payment
+        // (delivery reconciliation passes these so a late fix never sends a tute twice).
+        if (options && Array.isArray(options.skipTuteNames) && options.skipTuteNames.length > 0) {
+            const skip = new Set(options.skipTuteNames.map((t) => normalizeTuteText(t)).filter(Boolean));
+            for (let i = newDeliverableItems.length - 1; i >= 0; i--) {
+                const n = normalizeTuteText(newDeliverableItems[i].tuteName);
+                if (n && skip.has(n)) newDeliverableItems.splice(i, 1);
+            }
+        }
+
         if (newDeliverableItems.length === 0) {
             if (!dryRun) console.log(`[DELIVERY] All tutes for Payment #${payment.id} have already been delivered in this scope (${paymentTypeStr}). Skipping duplicate delivery.`);
             return null;
