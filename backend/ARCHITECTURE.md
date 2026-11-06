@@ -71,7 +71,7 @@ backend/
 | 1.6 | process roles | background jobs run in a separate `worker` process (`IMA_ROLE`) | ✅ done (LMS/CRM split: later) |
 | 2a | `payments` | online payments approved only by gateway confirmation; PayHere notify works; no double approve | ✅ done |
 | 2b | `payments` | server-side price check (shadow → `PRICING_ENFORCE=true`) | ✅ done (shadow) |
-| 3 | `delivery` | deliveries derived from entitlement + daily reconciliation job | ⏳ next |
+| 3 | `delivery` | daily reconciliation: missing deliveries + orphan deliveries; staff API | ✅ done (report mode) |
 | 4 | `content` | web + app use the same content API (no "web ok, app wrong") | |
 | 5 | `crm` | lead enrollment status derived from entitlement, not copied | |
 | 6 | `reports` | one query layer for all dashboards & stats | |
@@ -169,7 +169,7 @@ Still open (planned):
 | `api` | yes | no |
 | `worker` | no port opened | yes |
 
-Jobs (10): free-seminar auto-assign (1 min), live-class reminders (1 min), AI slip
+Jobs (11, incl. delivery reconcile 01:00 UTC): free-seminar auto-assign (1 min), live-class reminders (1 min), AI slip
 verification schedule (1 min), delivery status (hourly, 08:00), DB backup (02:30),
 YouTube cookies, quota reset, custom task generator, auto round push (midnight).
 The startup log prints `[jobs] role=... jobs=N/10 [...]`.
@@ -224,6 +224,27 @@ Rollout:
    and underpriced slips get a `[PRICE CHECK]` remark. Remove it to roll back.
 
 Not checked (skipped, logged): upgrade flows (monthly→full, multi-upgrade).
+
+## Step 3 — delivery reconciliation (done, report mode)
+
+Deliveries are still created at approval (`createAutoDeliveryForPayment`, unchanged rules),
+but nothing ever retried a failure or noticed later changes. `src/modules/delivery/` now finds:
+
+- **missing** — approved payment (last 90 days), tutes configured in Content Hub, no delivery.
+  Uses `createAutoDeliveryForPayment(payment, false, { dryRun: true })`, so the same dedupe
+  rules decide (no duplicates).
+- **orphans** — delivery not shipped yet (`Pending`/`Hold`/`Packed`) whose payment was
+  rejected or trashed.
+
+Staff API (`requireStaff`):
+- `GET  /api/v2/delivery/reconcile?days=90` → `{ missing: [...], orphans: [...] }`
+- `POST /api/v2/delivery/reconcile/:paymentId/create` → creates the missing delivery
+  (refuses if not approved, or if one already exists)
+
+Worker job `delivery-reconcile-daily` (06:30 Sri Lanka) logs
+`[delivery:reconcile] scanned=.. missing=.. orphans=..` plus the first 20 of each.
+With `DELIVERY_AUTOFIX=true` it also creates the missing ones (never for free cards, amount 0).
+Orphans are only reported — staff decide.
 
 ## Running tests
 
