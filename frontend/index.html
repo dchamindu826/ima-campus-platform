@@ -1,7 +1,10 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" translate="no">
   <head>
     <meta charset="UTF-8" />
+    <!-- Browser auto-translate (Chrome "Translate to Sinhala") rewrites text nodes and
+         crashes React with "Failed to execute 'insertBefore'/'removeChild' on 'Node'". -->
+    <meta name="google" content="notranslate" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
@@ -15,7 +18,25 @@
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=Noto+Sans+Sinhala:wght@300;400;500;600;700;800;900&family=Inter:wght@400;500;600;700;800;900&family=Sora:wght@500;600;700&display=swap" rel="stylesheet">
     <script type="text/javascript" src="https://www.payhere.lk/lib/payhere.js"></script>
   </head>
-  <body>
+  <body class="notranslate">
+    <script>
+      // Safety net: if a translator/extension still moved DOM nodes, don't crash the whole app
+      // (known React issue facebook/react#11538). Only skips operations on nodes that are no longer
+      // children of this parent; everything else behaves exactly as before.
+      (function () {
+        if (typeof Node !== 'function' || !Node.prototype) return;
+        var rc = Node.prototype.removeChild;
+        Node.prototype.removeChild = function (child) {
+          if (child && child.parentNode !== this) { return child; }
+          return rc.apply(this, arguments);
+        };
+        var ib = Node.prototype.insertBefore;
+        Node.prototype.insertBefore = function (newNode, ref) {
+          if (ref && ref.parentNode !== this) { return ib.call(this, newNode, null); }
+          return ib.apply(this, arguments);
+        };
+      })();
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
