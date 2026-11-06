@@ -74,7 +74,7 @@ backend/
 | 3 | `delivery` | daily reconciliation: missing deliveries + orphan deliveries; staff API | ✅ done (report mode) |
 | 4 | `content` | read requests no longer move content between folders; live/Zoom links need login + enrollment; call recordings staff-only; misfiled-content report | ✅ done (links in shadow) |
 | 4b | `content` | web + app use the same module-content service (no "web ok, app wrong") | next |
-| 5 | `crm` | lead enrollment status derived from entitlement, not copied | |
+| 5 | `crm` | one rule for lead enrollment (payments, judged like class access, same full phone); daily reconcile + report | ✅ done (report mode) |
 | 6 | `reports` | one query layer for all dashboards & stats | |
 | 7 | cleanup | delete replaced controllers; remaining modules | |
 
@@ -274,6 +274,31 @@ for display only. Folders change only when staff edit content.
 Left for **4b**: web and app `getCourseModules` are still two copies (the app version has no
 "monthly payments across months" merge and a looser full-payment match). They will be moved into
 one `content` service; with `ENTITLEMENT_ENFORCE=true` the route guard already decides access for both.
+
+## Step 5 — CRM enrollment (done, report mode)
+
+**Root causes of "CRM status waradi":**
+1. People were matched by the **last 7 digits** of a phone (`phone contains '1234567'`). 077 1234567
+   and 071 1234567 are different people — one student's payment changed someone else's lead.
+2. Three different places decide "enrolled", each differently: `paymentController.syncLeadEnrollment`
+   (status 4 = processing, may reset leads), `afterSeminarInquiryController.getLeads` and the
+   after-seminar stats (status 4 = enrolled, write ENROLLED to the DB while *reading* a page).
+
+**One rule now** (`src/modules/crm/rules.js`): same full number (9 digits after 0/94, from phone,
+WhatsApp, optional phone, or a real phone in addressHouseNo); payments for the lead's batch (or
+business when the lead has no batch); ENROLLED = approved or valid post-pay (same as class access),
+PAYMENT_PROCESSING = pending / underpaid / expired post-pay; staff-set `PAID` is never overwritten.
+
+- `GET /api/v2/crm/enrollment-report?batchId=&businessId=&kind=` (staff): kinds
+  `should-be-enrolled`, `should-be-processing`, `should-not-be-enrolled`, `enrolled-without-payment`;
+  plus `duplicates` (same person, same campaign + batch) and `last7OnlyMatches`.
+- Daily job `crm-enrollment-reconcile-daily` (01:30 UTC) logs `[crm:reconcile] ...`.
+  `CRM_AUTOFIX=true` also applies the safe kinds (should-be-enrolled / processing). Downgrades are only reported.
+- `syncLeadEnrollment` logs `[crm:shadow] ... would skip N lead(s) matched only by last 7 digits`.
+  `CRM_STRICT_PHONE=true` makes it skip them.
+
+Left for **5b** (after the report numbers are reviewed): switch the stats/getLeads pages to the
+same rule and remove their read-time DB writes.
 
 ## Running tests
 
