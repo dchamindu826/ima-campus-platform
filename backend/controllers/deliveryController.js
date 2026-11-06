@@ -197,6 +197,7 @@ exports.getPendingDeliveries = async (req, res) => {
             }
         });
 
+        const tagOf = await require('../src/modules/delivery/classTag').classTagger(prisma, deliveries);
         const formatted = deliveries.map(d => {
             const std = d.payment?.student || {};
             const addressParts = [std.addressHouseNo, std.addressStreet, std.city, std.district].filter(Boolean);
@@ -286,6 +287,7 @@ exports.getPendingDeliveries = async (req, res) => {
                 batchName: d.payment?.batch?.name || 'Batch Not Assigned', 
                 groupName: d.payment?.group?.name || 'No Group',
                 isUpgrade: isUpgrade,
+                classTag: tagOf(d),
                 items: enrichedItems,
                 hasDuplicate,
                 duplicateWarnings,
@@ -877,6 +879,7 @@ exports.getDispatchDeliveries = async (req, res) => {
             select: { id: true, name: true, batchId: true }
         });
 
+        const tagOf = await require('../src/modules/delivery/classTag').classTagger(prisma, deliveries);
         const formatted = deliveries.map(d => {
             const std = d.payment?.student || {};
             const addressParts = [std.addressHouseNo, std.addressStreet, std.city, std.district].filter(Boolean);
@@ -894,6 +897,7 @@ exports.getDispatchDeliveries = async (req, res) => {
                 phone: d.labelPhone || finalPhone, // 🔥 Updated Multiple Phones
                 batchName: d.payment?.batch?.name || 'Batch Not Assigned',
                 groupName: d.payment?.group?.name || 'No Group',
+                classTag: tagOf(d),
                 items: d.items.flatMap(item => resolveTutesForDeliveryItem(item, d, courses, allGroups))
             };
         });
@@ -970,6 +974,7 @@ exports.getAdvancedHistory = async (req, res) => {
             where: { batchId: { in: batchIds } }
         });
 
+        const tagOf = await require('../src/modules/delivery/classTag').classTagger(prisma, deliveries);
         const formatted = deliveries.map(d => {
             const bizName = businesses.find(b => b.id === d.businessId)?.name || 'Unknown';
             const std = d.payment?.student || {};
@@ -998,6 +1003,7 @@ exports.getAdvancedHistory = async (req, res) => {
                 trackingNumber: d.trackingNumber,
                 packedAt: d.packedAt,
                 packRemark: d.packRemark,
+                classTag: tagOf(d),
                 items: itemsWithDetails
             };
         });
