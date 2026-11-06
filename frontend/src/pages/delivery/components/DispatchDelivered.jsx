@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { Truck, CheckCircle, ArrowLeft, Loader2, Package, Eye, X, BookOpen, MapPin, Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 import axios from '../../../api/axios';
 import toast from 'react-hot-toast';
+import { ClassTagBadge, ClassTagFilter, matchesClassTag } from './ClassTag';
 
 export default function DispatchDelivered({ searchQuery }) {
     // SMART IMAGE COMPONENT FOR PENDING ITEMS
@@ -53,6 +54,7 @@ export default function DispatchDelivered({ searchQuery }) {
     const [viewType, setViewType] = useState('Dispatch'); 
     const [selectedOrder, setSelectedOrder] = useState(null);
     const [selectedBatchFilter, setSelectedBatchFilter] = useState('All');
+    const [classFilter, setClassFilter] = useState('All'); // Theory / Paper / Both
     
     // Pagination & Date Filter States
     const [dateRange, setDateRange] = useState({ start: '', end: '' });
@@ -123,6 +125,7 @@ export default function DispatchDelivered({ searchQuery }) {
     const filteredDeliveries = deliveries.filter(order => {
         
         if (selectedBatchFilter !== 'All' && order.batchName !== selectedBatchFilter) return false;
+        if (!matchesClassTag(order, classFilter)) return false;
 
         const matchesSearch = order.studentName?.toLowerCase().includes(searchQuery.toLowerCase()) || 
                               order.trackingNumber?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -215,6 +218,7 @@ export default function DispatchDelivered({ searchQuery }) {
                                             ))}
                                         </select>
                                     </div>
+                                    <ClassTagFilter value={classFilter} onChange={(v) => { setClassFilter(v); setCurrentPage(1); }} orders={deliveries.filter(o => selectedBatchFilter === 'All' || o.batchName === selectedBatchFilter)} />
                                 </div>
                             </div>
                             
@@ -261,6 +265,7 @@ export default function DispatchDelivered({ searchQuery }) {
                                                 <span className={`text-[10px] font-black px-2.5 py-1 rounded-lg uppercase tracking-widest border transition-colors shadow-sm ${viewType === 'Delivered' ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-500/30' : 'bg-brand-accentLight dark:bg-brand-accent/20 text-brand-accent dark:text-brand-accent border-brand-accent/30 dark:border-brand-accent/30'}`}>
                                                     {viewType}
                                                 </span>
+                                                <ClassTagBadge tag={order.classTag} small />
                                             </h4>
                                             <div className="flex flex-wrap items-center gap-2 text-sm text-gray-600 dark:text-slate-300 font-bold tracking-wide transition-colors">
                                                 <span className="bg-white/60 dark:bg-black/20 px-2 py-0.5 rounded-md border border-gray-200 dark:border-white/5">REF: <span className="text-gray-900 dark:text-white">ORD-{order.id}</span></span>

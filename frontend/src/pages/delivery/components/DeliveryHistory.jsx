@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { Search, Calendar, ChevronLeft, ChevronRight, CheckCircle, X, Globe, Copy, Loader2, Download, CreditCard, Printer, BookOpen, MessageSquare, Edit3 } from 'lucide-react';
 import axios from '../../../api/axios';
 import toast from 'react-hot-toast';
+import { ClassTagBadge } from './ClassTag';
 
 export default function DeliveryHistory({ isReadOnly }) {
     const [loading, setLoading] = useState(false);
@@ -105,7 +106,7 @@ export default function DeliveryHistory({ isReadOnly }) {
                 return;
             }
 
-            const headers = ["Order ID", "Student Name", "Phone", "Address", "Business", "Batch", "Payment Type", "Status", "Tracking Number", "Subjects Included"];
+            const headers = ["Order ID", "Student Name", "Phone", "Address", "Business", "Batch", "Payment Type", "Class Type", "Status", "Tracking Number", "Subjects Included"];
             
             const csvRows = data.map(row => {
                 const subjectsStr = row.items ? row.items.map(i => `${i.tuteName} (x${i.quantity})`).join(' | ') : 'N/A';
@@ -118,6 +119,7 @@ export default function DeliveryHistory({ isReadOnly }) {
                     `"${row.businessName}"`,
                     `"${row.batchName}"`,
                     `"${row.paymentType}"`,
+                    `"${row.classTag || 'Theory'}"`,
                     `"${row.status}"`,
                     `"${row.trackingNumber || 'N/A'}"`,
                     `"${subjectsStr}"`
@@ -417,6 +419,7 @@ export default function DeliveryHistory({ isReadOnly }) {
                                                         : 'bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-200 dark:border-orange-500/20'}`}>
                                                         {row.paymentType || 'N/A'}
                                                     </span>
+                                                    <ClassTagBadge tag={row.classTag} small />
                                                 </div>
                                             </td>
                                             

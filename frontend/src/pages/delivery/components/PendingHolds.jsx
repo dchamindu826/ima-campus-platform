@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { Search, MapPin, Phone, Package, Filter, Calendar, Save, Trash2, Box, Eye, Check, Clock, AlertTriangle, ArrowLeft, Loader2, ArrowRight, UserCheck, X, History, ChevronDown, ChevronUp, CheckCircle2, MessageSquare, Settings, Layers, Edit2, Printer, ScanBarcode, BookOpen } from 'lucide-react';
 import axios from '../../../api/axios';
 import toast from 'react-hot-toast';
+import { ClassTagBadge, ClassTagFilter, matchesClassTag } from './ClassTag';
 
 // SMART IMAGE COMPONENT FOR PENDING ITEMS
 const DeliveryItemImage = ({ coverName }) => {
@@ -51,6 +52,7 @@ export default function PendingHolds({ searchQuery, isReadOnly }) {
     const [selectedBatchFilter, setSelectedBatchFilter] = useState('All');
     const [apiBatches, setApiBatches] = useState([]);
     const [sortBy, setSortBy] = useState('oldest');
+    const [classFilter, setClassFilter] = useState('All'); // Theory / Paper / Both
     
     const [viewType, setViewType] = useState('Pending'); 
     const [isEditOrderMode, setIsEditOrderMode] = useState(false);
@@ -251,7 +253,7 @@ export default function PendingHolds({ searchQuery, isReadOnly }) {
         });
     }, [searchQuery, isSearching, selectedBiz, allDeliveries, businesses, sortBy]);
 
-    const baseFilteredDeliveries = processedDeliveries.filter(order => {
+    const batchAndSearchFiltered = processedDeliveries.filter(order => {
         if (selectedBatchFilter !== 'All' && order.batchName !== selectedBatchFilter) return false;
 
         const searchLower = searchQuery.toLowerCase();
@@ -260,6 +262,7 @@ export default function PendingHolds({ searchQuery, isReadOnly }) {
                               order.phone?.includes(searchQuery);
         return matchesSearch;
     });
+    const baseFilteredDeliveries = batchAndSearchFiltered.filter(order => matchesClassTag(order, classFilter));
 
     // 🔥 FIX: Tab counts updated to use baseFilteredDeliveries
     const tabCounts = {
@@ -459,6 +462,10 @@ export default function PendingHolds({ searchQuery, isReadOnly }) {
                                                     ))}
                                                 </select>
                                             </div>
+
+                                            <div className="h-4 w-px bg-gray-300 dark:bg-white/10 hidden sm:block"></div>
+
+                                            <ClassTagFilter value={classFilter} onChange={setClassFilter} orders={batchAndSearchFiltered} />
 
                                             <div className="h-4 w-px bg-gray-300 dark:bg-white/10 hidden sm:block"></div>
 
@@ -828,6 +835,7 @@ function OrderCard({ order, onRefresh, isReadOnly }) {
                                     <span className={`text-[11px] font-black px-3 py-1.5 rounded-lg border tracking-widest uppercase shadow-sm flex items-center gap-1.5 transition-colors ${typeBadgeStyle}`}>
                                         {order.isUpgrade ? `UPGRADE ORDER • ${order.paymentType}` : (order.isMix ? `MIXED ORDER • ${order.paymentType}` : order.paymentType)}
                                     </span>
+                                    <ClassTagBadge tag={order.classTag} />
                                     {order.hasDuplicate && (
                                         <span className="text-[11px] font-black text-white bg-rose-600 dark:bg-rose-600 px-3 py-1.5 rounded-lg border border-rose-700 dark:border-rose-500 uppercase tracking-widest shadow-md flex items-center gap-1.5 animate-pulse">
                                             <AlertTriangle size={12} className="text-white"/> DUPLICATE ALERT
