@@ -78,14 +78,17 @@ async function dailyReconcile() {
     const autofix = String(process.env.DELIVERY_AUTOFIX || '').toLowerCase() === 'true';
     const { missing, awaitingManual, scanned, truncated } = await findMissingDeliveries({ days: 90 });
     const orphans = await findOrphanDeliveries();
+    const windowDays = parseInt(process.env.DELIVERY_AUTOFIX_DAYS, 10) || 7;
     let fixed = 0;
     if (autofix) {
-        for (const m of missing.filter((x) => x.autoFixable)) {
+        // Usual cause: the tute was set in Content Hub AFTER the payment was approved.
+        // Only recent normal approvals are created; Discount/Free Card never (autoFixable).
+        for (const m of missing.filter((x) => x.autoFixable && rules.withinAutofixWindow(x.approvedAt, new Date(), windowDays))) {
             const r = await createMissingDelivery(m.paymentId);
             if (r.created) fixed++;
         }
     }
-    console.log(`[delivery:reconcile] scanned=${scanned}${truncated ? '+' : ''} missing=${missing.length} awaitingManual=${awaitingManual.length} orphans=${orphans.length} autofix=${autofix} created=${fixed}`);
+    console.log(`[delivery:reconcile] scanned=${scanned}${truncated ? '+' : ''} missing=${missing.length} awaitingManual=${awaitingManual.length} orphans=${orphans.length} autofix=${autofix}(${windowDays}d) created=${fixed}`);
     for (const m of missing.slice(0, 20)) console.log(`[delivery:reconcile] missing payment=${m.paymentId} student=${m.studentId} tutes=${JSON.stringify(m.tutes)}`);
     for (const o of orphans.slice(0, 20)) console.log(`[delivery:reconcile] orphan delivery=${o.deliveryId} (${o.deliveryStatus}) payment=${o.paymentId} ${o.reason}`);
     return { missing: missing.length, awaitingManual: awaitingManual.length, orphans: orphans.length, created: fixed };

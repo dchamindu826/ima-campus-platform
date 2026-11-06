@@ -29,3 +29,10 @@ test('rule: Discount and Free Card approvals are manual-only, never auto-deliver
     assert.equal(R.autoFixable({ status: 1, amount: 3000, remark: 'Custom Breakdown: [ICT: LKR 3000]' }), false);
     assert.equal(R.autoFixable({ status: 1, amount: 6500, remark: '' }), true);
 });
+
+test('daily autofix only touches recent payments; old ones are left to the delivery team', () => {
+    const now = new Date('2026-11-06T00:00:00Z');
+    assert.equal(R.withinAutofixWindow('2026-11-03T10:00:00Z', now, 7), true);
+    assert.equal(R.withinAutofixWindow('2026-10-14T10:00:00Z', now, 7), false);
+    assert.equal(R.withinAutofixWindow('garbage', now, 7), false);
+});
