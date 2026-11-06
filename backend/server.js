@@ -259,6 +259,8 @@ app.use('/api/petty-cash', require('./routes/pettyCashRoutes'));
 require('./controllers/deliveryController');
 // 🔥 AUTO BACKUP SERVICE (CRON JOB) 🔥
 require('./services/backupService');
+// Delivery reconciliation (daily, worker only) — src/modules/delivery
+require('./src/modules/delivery/jobs');
 
 // 🔥 GOOGLE SHEETS CACHE ENGINE 🔥
 const { initCacheJob } = require('./utils/gsheetCache');

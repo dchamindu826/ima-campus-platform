@@ -7,6 +7,7 @@ const { errorHandler } = require('./core/errors');
 const router = express.Router();
 
 router.use('/entitlements', require('./modules/entitlement/routes'));
+router.use('/delivery', require('./modules/delivery/routes'));
 
 router.use(errorHandler);
 

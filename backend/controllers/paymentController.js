@@ -242,7 +242,9 @@ const getDeliverableCoursesForPayment = async (payment, courses) => {
  *      (Prevents duplicate orders if batch tutes were already delivered).
  * 4. Deduplicates by both courseId and normalized tute name.
  */
-const createAutoDeliveryForPayment = async (payment, isSelfPicked = false) => {
+const createAutoDeliveryForPayment = async (payment, isSelfPicked = false, options = {}) => {
+    // options.dryRun: work out what WOULD be delivered, write nothing (used by delivery reconciliation)
+    const dryRun = Boolean(options && options.dryRun);
     try {
         if (!payment || !payment.id || !payment.subjects) return null;
 
@@ -254,6 +256,7 @@ const createAutoDeliveryForPayment = async (payment, isSelfPicked = false) => {
             }
         });
         if (existingDeliveryForPayment) {
+            if (dryRun) return existingDeliveryForPayment;
             console.log(`[DELIVERY] Delivery already exists for Payment #${payment.id} (ORD-${existingDeliveryForPayment.id}). Skipping.`);
             return existingDeliveryForPayment;
         }
@@ -275,6 +278,7 @@ const createAutoDeliveryForPayment = async (payment, isSelfPicked = false) => {
         // 3. Resolve deliverable tute items from Content Hub (groupPrices)
         const deliverableItems = await getDeliverableCoursesForPayment(payment, courses);
         if (!deliverableItems || deliverableItems.length === 0) {
+            if (dryRun) return null;
             console.log(`[DELIVERY] No deliverable tutes configured for Payment #${payment.id} in Content Hub.`);
             return null;
         }
@@ -367,9 +371,11 @@ const createAutoDeliveryForPayment = async (payment, isSelfPicked = false) => {
         });
 
         if (newDeliverableItems.length === 0) {
-            console.log(`[DELIVERY] All tutes for Payment #${payment.id} have already been delivered in this scope (${paymentTypeStr}). Skipping duplicate delivery.`);
+            if (!dryRun) console.log(`[DELIVERY] All tutes for Payment #${payment.id} have already been delivered in this scope (${paymentTypeStr}). Skipping duplicate delivery.`);
             return null;
         }
+
+        if (dryRun) return { plannedItems: newDeliverableItems, paymentType: paymentTypeStr };
 
         // 5. Create Delivery in Pending status (or Delivered if self-picked)
         const delivery = await prisma.delivery.create({
