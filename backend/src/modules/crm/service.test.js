@@ -28,7 +28,7 @@ test('report: paid student lead NOT marked enrolled is found; last-7 look-alike 
     const r = await load(db).enrollmentReport();
     const byLead = Object.fromEntries(r.changes.map((c) => [c.leadId, c.kind]));
     assert.equal(byLead[1], 'should-be-enrolled');
-    assert.equal(byLead[2], 'enrolled-without-payment');
+    assert.equal(byLead[2], 'enrolled-by-lookalike-number', '071 1234567 enrolled only because 077 1234567 paid');
     assert.equal(byLead[3], 'should-be-processing');
     assert.equal(byLead[4], undefined, 'manual PAID untouched');
     assert.equal(r.last7OnlyMatches, 1);
@@ -42,4 +42,26 @@ test('autofix applies only upgrades; downgrade is left for staff', async () => {
     assert.equal(await svc.applySafeChanges(r.changes), 2);
     assert.deepEqual(leads.map((l) => l.enrollmentStatus), ['ENROLLED', 'ENROLLED', 'PAYMENT_PROCESSING', 'PAID']);
     assert.equal(leads[0].paymentIntention, 'FULL');
+});
+
+test('report: a person already ENROLLED via another lead is not enrolled again (no double counting); newest lead wins', async () => {
+    const leads = [
+        { id: 10, phone: '0771234567', batchId: 5, campaignType: 'FREE_SEMINAR', enrollmentStatus: 'ENROLLED', createdAt: new Date('2026-09-01'), batch: { businessId: 2 } },
+        { id: 11, phone: '0771234567_BIZ_2_AS', batchId: 5, campaignType: 'AFTER_SEMINAR', enrollmentStatus: 'NON_ENROLLED', createdAt: new Date('2026-10-01'), batch: { businessId: 2 } },
+        { id: 20, phone: '0779999999', batchId: 5, campaignType: 'FREE_SEMINAR', enrollmentStatus: 'NON_ENROLLED', createdAt: new Date('2026-09-01'), batch: { businessId: 2 } },
+        { id: 21, phone: '0779999999_AS', batchId: 5, campaignType: 'AFTER_SEMINAR', enrollmentStatus: 'NON_ENROLLED', createdAt: new Date('2026-10-01'), batch: { businessId: 2 } },
+        { id: 30, phone: '0711234567', batchId: 5, campaignType: 'AFTER_SEMINAR', enrollmentStatus: 'ENROLLED', createdAt: new Date('2026-10-01'), batch: { businessId: 2 } },
+    ];
+    const db = {
+        lead: { findMany: async () => leads },
+        user: { findMany: async () => [{ id: 70, phone: '0771234567' }, { id: 80, phone: '0779999999' }] },
+        payment: { findMany: async () => [{ id: 1, studentId: 70, batchId: 5, status: 1, payment_type: 1 }, { id: 2, studentId: 80, batchId: 5, status: 1, payment_type: 1 }] },
+    };
+    const r = await load(db).enrollmentReport();
+    const byLead = Object.fromEntries(r.changes.map((c) => [c.leadId, c.kind]));
+    assert.equal(byLead[11], undefined, 'person already enrolled via lead 10');
+    assert.equal(byLead[21], 'should-be-enrolled', 'newest lead of the person');
+    assert.equal(byLead[20], undefined);
+    assert.equal(r.secondaryLeads, 2);
+    assert.equal(byLead[30], 'enrolled-by-lookalike-number', '071 1234567 enrolled only because 077 1234567 paid');
 });
