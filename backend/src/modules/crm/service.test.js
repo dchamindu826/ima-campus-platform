@@ -1,17 +1,25 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
+const SL = (s) => new Date(`${s}+05:30`);
 function fake() {
     const leads = [
-        { id: 1, phone: '0771234567_BIZ_2_BATCH_5_AS', batchId: 5, campaignType: 'AFTER_SEMINAR', enrollmentStatus: 'NON_ENROLLED', paymentIntention: 'NOT_DECIDED', batch: { businessId: 2 } },
-        { id: 2, phone: '0711234567', batchId: 5, campaignType: 'AFTER_SEMINAR', enrollmentStatus: 'ENROLLED', paymentIntention: 'MONTHLY', batch: { businessId: 2 } }, // same last 7, other person
-        { id: 3, phone: '0779999999', batchId: 5, campaignType: 'AFTER_SEMINAR', enrollmentStatus: 'NON_ENROLLED', batch: { businessId: 2 } },
-        { id: 4, phone: '0779999999_X', batchId: 5, campaignType: 'AFTER_SEMINAR', enrollmentStatus: 'PAID', batch: { businessId: 2 } },
+        { id: 1, phone: '0771234567_BIZ_2_BATCH_5_AS', batchId: 5, campaignType: 'AFTER_SEMINAR', enrollmentStatus: 'ENROLLED', paymentIntention: 'MONTHLY', createdAt: SL('2026-04-01T00:00:00'), batch: { businessId: 2 } },
+        { id: 2, phone: '0711234567', batchId: 5, campaignType: 'AFTER_SEMINAR', enrollmentStatus: 'ENROLLED', paymentIntention: 'MONTHLY', createdAt: SL('2026-04-01T00:00:00'), batch: { businessId: 2 } },
+        { id: 3, phone: '0779999999', batchId: 5, campaignType: 'FREE_SEMINAR', enrollmentStatus: 'NON_ENROLLED', createdAt: SL('2026-03-01T00:00:00'), batch: { businessId: 2 } },
+        { id: 4, phone: '0779999999_AS', batchId: 5, campaignType: 'AFTER_SEMINAR', enrollmentStatus: 'NON_ENROLLED', createdAt: SL('2026-04-01T00:00:00'), batch: { businessId: 2 } },
     ];
     const db = {
-        lead: { findMany: async () => leads, updateMany: async ({ where, data }) => { const l = leads.find((x) => x.id === where.id); if (!l) return { count: 0 }; Object.assign(l, data); return { count: 1 }; } },
-        user: { findMany: async () => [{ id: 70, phone: '94771234567' }, { id: 80, phone: '0779999999' }] },
-        payment: { findMany: async () => [{ id: 900, studentId: 70, batchId: 5, businessId: 2, status: 1, payment_type: 3 }, { id: 901, studentId: 80, batchId: 5, businessId: 2, status: 0, payment_type: 1 }] },
+        lead: { findMany: async () => leads, updateMany: async ({ where, data }) => { const l = leads.find((x) => x.id === where.id); Object.assign(l, data); return { count: 1 }; } },
+        user: { findMany: async () => [{ id: 70, phone: '0771234567' }, { id: 80, whatsapp: '94779999999' }] },
+        group: { findMany: async () => [{ id: 1, name: 'APRIL MONTH', batchId: 5, createdAt: SL('2026-04-01T00:00:00') }, { id: 2, name: 'MAY MONTH', batchId: 5, createdAt: SL('2026-05-01T00:00:00') }] },
+        course: { findMany: async () => [{ id: 11, name: 'ICT' }, { id: 12, name: 'ET' }, { id: 13, name: 'SFT' }, { id: 21, name: 'ICT' }, { id: 22, name: 'ET' }] },
+        installment: { findMany: async () => [] },
+        payment: { findMany: async () => [
+            { id: 1, studentId: 70, batchId: 5, groupId: 1, status: 1, payment_type: 1, subjects: '[11,12,13]', created_at: SL('2026-04-03T10:00:00') },
+            { id: 2, studentId: 70, batchId: 5, groupId: 2, status: 1, payment_type: 1, subjects: '[21,22]', created_at: SL('2026-05-02T10:00:00') },
+            { id: 3, studentId: 80, batchId: 5, groupId: 2, status: 1, payment_type: 1, subjects: '[21]', created_at: SL('2026-05-02T10:00:00') },
+        ] },
     };
     return { db, leads };
 }
@@ -23,23 +31,28 @@ const load = (db) => {
 };
 test.after(() => { delete globalThis.__imaPrisma; });
 
-test('report: paid student lead NOT marked enrolled is found; last-7 look-alike is flagged, not trusted', async () => {
+test('report on the owner example (May, April intake)', async () => {
     const { db } = fake();
-    const r = await load(db).enrollmentReport();
-    const byLead = Object.fromEntries(r.changes.map((c) => [c.leadId, c.kind]));
-    assert.equal(byLead[1], 'should-be-enrolled');
-    assert.equal(byLead[2], 'enrolled-without-payment');
-    assert.equal(byLead[3], 'should-be-processing');
-    assert.equal(byLead[4], undefined, 'manual PAID untouched');
-    assert.equal(r.last7OnlyMatches, 1);
-    assert.equal(r.duplicates, 1, 'leads 3 and 4 are the same person in the same batch/campaign');
+    const r = await load(db).enrollmentReport({ now: SL('2026-05-10T10:00:00') });
+    const byLead = Object.fromEntries(r.changes.map((c) => [c.leadId, c]));
+    assert.equal(byLead[1].kind, 'should-be-non-paid-dropped-subject', 'dropped SFT');
+    assert.deepEqual(byLead[1].dropped, ['sft']);
+    assert.equal(byLead[2].kind, 'enrolled-by-lookalike-number', '071 lead enrolled only because 077 paid');
+    assert.equal(byLead[4].kind, 'should-be-enrolled', 'WhatsApp number matches; newest lead');
+    assert.equal(byLead[3], undefined, 'older lead of the same person is secondary');
+    assert.equal(r.secondaryLeads, 1);
+    assert.deepEqual(r.droppedSubjects, { sft: 1 });
 });
 
-test('autofix applies only upgrades; downgrade is left for staff', async () => {
+test('nothing is written without CRM_AUTOFIX; with it only upgrades', async () => {
     const { db, leads } = fake();
     const svc = load(db);
-    const r = await svc.enrollmentReport();
-    assert.equal(await svc.applySafeChanges(r.changes), 2);
-    assert.deepEqual(leads.map((l) => l.enrollmentStatus), ['ENROLLED', 'ENROLLED', 'PAYMENT_PROCESSING', 'PAID']);
-    assert.equal(leads[0].paymentIntention, 'FULL');
+    delete process.env.CRM_AUTOFIX;
+    const o = console.log; console.log = () => {};
+    await svc.dailyReconcile();
+    assert.deepEqual(leads.map((l) => l.enrollmentStatus), ['ENROLLED', 'ENROLLED', 'NON_ENROLLED', 'NON_ENROLLED']);
+    console.log = o;
+    const r = await svc.enrollmentReport({ now: SL('2026-05-10T10:00:00') });
+    assert.equal(await svc.applySafeChanges(r.changes), 1);
+    assert.deepEqual(leads.map((l) => l.enrollmentStatus), ['ENROLLED', 'ENROLLED', 'NON_ENROLLED', 'ENROLLED'], 'downgrade of lead 1 is NOT applied');
 });
