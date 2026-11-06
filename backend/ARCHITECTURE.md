@@ -243,7 +243,9 @@ Staff API (`requireStaff`):
 
 Worker job `delivery-reconcile-daily` (06:30 Sri Lanka) logs
 `[delivery:reconcile] scanned=.. missing=.. orphans=..` plus the first 20 of each.
-With `DELIVERY_AUTOFIX=true` it also creates the missing ones (never for free cards, amount 0).
+With `DELIVERY_AUTOFIX=true` it also creates the missing ones.
+
+**Business rule (step 3b):** Discount and Free Card approvals are never auto-delivered — staff send them with "Send to Delivery". The report lists them separately as `awaitingManual` (kind `discount` / `free-card`), not as `missing`, and `createMissingDelivery` refuses them (`manual-only:<kind>`).
 Orphans are only reported — staff decide.
 
 ## Running tests

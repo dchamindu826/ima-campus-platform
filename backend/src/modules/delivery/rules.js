@@ -13,11 +13,23 @@ function orphanReason(delivery, payment) {
 }
 
 /**
- * Should reconciliation auto-create this missing delivery?
- * Free cards (amount 0) are skipped: staff send those to delivery by hand.
+ * Business rule: Free Card and Discount approvals are NEVER auto-delivered.
+ * Staff send those with the "Send to Delivery" button (paymentController SendToDelivery).
+ * Markers come from the admin UI (PaymentManagement.jsx):
+ *   Free Card → amount 0, remark "[Free Card Granted] ..."
+ *   Discount  → remark "Custom Breakdown: [...]"
+ * @returns {'free-card'|'discount'|null}
  */
-function autoFixable(payment) {
-    return Number(payment.status) === 1 && Number(payment.amount) > 0;
+function manualOnlyReason(payment) {
+    const remark = String((payment && payment.remark) || '');
+    if (Number(payment && payment.amount) === 0 || /Free Card/i.test(remark)) return 'free-card';
+    if (/Custom Breakdown/i.test(remark)) return 'discount';
+    return null;
 }
 
-module.exports = { NOT_SHIPPED, orphanReason, autoFixable };
+/** Should reconciliation auto-create this missing delivery? Only normal approved payments. */
+function autoFixable(payment) {
+    return Number(payment.status) === 1 && Number(payment.amount) > 0 && manualOnlyReason(payment) === null;
+}
+
+module.exports = { NOT_SHIPPED, orphanReason, manualOnlyReason, autoFixable };

@@ -12,7 +12,7 @@ router.use(authenticate, requireStaff);
 router.get('/reconcile', async (req, res) => {
     const days = Math.min(Math.max(parseInt(req.query.days, 10) || 90, 1), 365);
     const [m, orphans] = await Promise.all([service.findMissingDeliveries({ days }), service.findOrphanDeliveries()]);
-    res.json({ days, scanned: m.scanned, truncated: m.truncated, missing: m.missing, orphans });
+    res.json({ days, scanned: m.scanned, truncated: m.truncated, missing: m.missing, awaitingManual: m.awaitingManual, orphans });
 });
 
 // Create the missing delivery for one payment.
