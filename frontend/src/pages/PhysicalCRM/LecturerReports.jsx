@@ -36,8 +36,10 @@ import {
   ArrowDownRight,
   ArrowUpRight,
   ExternalLink,
-  Trash2
+  Trash2,
+  FileSpreadsheet
 } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import physicalCrmService from '../../api/physicalCrm';
 import { physicalFinanceService } from '../../api/physicalFinance';
 import LecturerInvoiceModal from '../../components/PhysicalCRM/LecturerInvoiceModal';
@@ -151,6 +153,55 @@ export default function LecturerReports() {
       cls.students.map(st => ({ ...st, classId: cls.classId, className: cls.className, grade: cls.grade }))
     );
   }, [reportData]);
+
+  // ---- Excel export (roster + late fees) ----
+  const safeName = (v) => String(v || '').replace(/[^A-Za-z0-9_-]+/g, '_').replace(/^_+|_+$/g, '');
+  const excelFileName = (what) => `${safeName(reportData?.teacher?.name) || 'Lecturer'}_${what}_${selectedMonth}.xlsx`;
+  const fmtDate = (d) => { try { return d ? format(new Date(d), 'yyyy-MM-dd') : ''; } catch (e) { return ''; } };
+  const lateFeeTotal = (st) => (st.lateFees || []).reduce((sum, lf) => sum + (Number(lf.amount) || 0), 0);
+
+  const lateFeeRows = () => (reportData?.lateFeeCollections || []).map((lf, i) => ({
+    '#': i + 1,
+    'Date Paid': fmtDate(lf.paidDate),
+    'Student Reg ID': lf.studentRegId || '',
+    'Student Name': lf.studentName || '',
+    'Class': lf.className || '',
+    'Past Fee Month': formatMonthYear(lf.feeMonth),
+    'Amount Paid (Rs.)': Number(lf.amount) || 0,
+    'Payment Method': lf.paymentMethod || '',
+  }));
+
+  const exportLateFeesExcel = () => {
+    const rows = lateFeeRows();
+    if (rows.length === 0) { toast.error('No late fee collections to export'); return; }
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), 'Late Fees');
+    XLSX.writeFile(wb, excelFileName('LateFees'));
+  };
+
+  const exportRosterExcel = () => {
+    if (filteredRosterStudents.length === 0) { toast.error('No students to export'); return; }
+    const rosterRows = filteredRosterStudents.map((st, i) => ({
+      '#': i + 1,
+      'Student Reg ID': st.studentId || '',
+      'Student Name': st.studentName || '',
+      'Phone': st.phone || '',
+      'Active': st.isActive ? 'Active' : 'Inactive',
+      'Class': st.className || '',
+      'Grade': st.grade || '',
+      [`Class Fee Status (${formatMonthYear(selectedMonth)})`]: st.feeStatus || '',
+      'Class Fee Amount (Rs.)': st.feeStatus === 'FREE_CARD' ? 0 : (Number(st.amount) || 0),
+      'Paid Date': st.feeStatus === 'PENDING' ? '' : fmtDate(st.paidDate),
+      'Payment Method': st.feeStatus === 'PENDING' ? '' : (st.paymentMethod || ''),
+      'Late Fees Paid (Rs.)': lateFeeTotal(st),
+      'Late Fee Months': (st.lateFees || []).map((lf) => `${formatMonthYear(lf.feeMonth)}: Rs. ${Number(lf.amount) || 0}`).join(', '),
+    }));
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rosterRows), 'Roster');
+    const lf = lateFeeRows();
+    if (lf.length > 0) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(lf), 'Late Fees');
+    XLSX.writeFile(wb, excelFileName('Roster'));
+  };
 
   const filteredRosterStudents = useMemo(() => {
     return allRosterStudents.filter(st => {
@@ -1296,6 +1347,14 @@ export default function LecturerReports() {
                   </p>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={exportLateFeesExcel}
+                    className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs inline-flex items-center gap-1.5 cursor-pointer"
+                    title="Download late fee collections as Excel"
+                  >
+                    <FileSpreadsheet size={14} /> Export Excel
+                  </button>
                   <span className="px-3 py-1.5 rounded-xl bg-amber-500/15 text-amber-300 font-bold text-xs border border-amber-500/30">
                     {reportData.lateFeeCollections.length} Late Payments
                   </span>
@@ -1558,6 +1617,14 @@ export default function LecturerReports() {
 
                 {/* Search Bar & Result Counter inside Roster Header */}
                 <div className="flex items-center gap-2.5 w-full sm:w-auto">
+                  <button
+                    type="button"
+                    onClick={exportRosterExcel}
+                    className="shrink-0 px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs inline-flex items-center gap-1.5 cursor-pointer"
+                    title="Download the students shown below (with current filter/search) as Excel"
+                  >
+                    <FileSpreadsheet size={14} /> Export Excel
+                  </button>
                   <span className="text-[11px] font-semibold text-slate-400 hidden md:inline-block px-2.5 py-1.5 bg-slate-800/80 rounded-xl border border-slate-700/80">
                     Showing <strong className="text-white">{filteredRosterStudents.length}</strong> of <strong className="text-slate-300">{allRosterStudents.length}</strong>
                   </span>
@@ -1595,13 +1662,15 @@ export default function LecturerReports() {
                       <th className="p-3">Student Name</th>
                       <th className="p-3">Class</th>
                       <th className="p-3 text-center">Class Fee ({formatMonthYear(selectedMonth)})</th>
+                      <th className="p-3 text-right">Fee Amount</th>
+                      <th className="p-3">Late Fees</th>
                       <th className="p-3 text-right">Action</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-800 text-slate-200">
                     {filteredRosterStudents.length === 0 ? (
                       <tr>
-                        <td colSpan={6} className="p-8 text-center text-slate-400">
+                        <td colSpan={8} className="p-8 text-center text-slate-400">
                           <Users size={32} className="mx-auto mb-2 opacity-30 text-slate-400" />
                           <p className="text-sm font-semibold text-slate-300">
                             {studentSearch ? `No students found matching "${studentSearch}"` : 'No students found for this filter'}
@@ -1674,15 +1743,6 @@ export default function LecturerReports() {
                                 {st.phone && <span className="text-[10px] text-slate-400 block">{st.phone}</span>}
                               </div>
                             </div>
-                            {st.lateFees && st.lateFees.length > 0 && (
-                              <div className="flex flex-wrap gap-1 mt-1.5 pl-9.5">
-                                {st.lateFees.map((lf, lfI) => (
-                                  <span key={lfI} className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-300 border border-amber-500/30 text-[9px] font-bold">
-                                    <Clock size={9} /> Paid Late: Rs. {lf.amount.toLocaleString()} ({formatMonthYear(lf.feeMonth)})
-                                  </span>
-                                ))}
-                              </div>
-                            )}
                           </td>
                           <td className="p-3 text-slate-300">
                             {st.className} <span className="text-[10px] text-slate-500">({st.grade})</span>
@@ -1691,6 +1751,33 @@ export default function LecturerReports() {
                             <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase ${st.feeStatus === 'PAID' ? 'bg-emerald-600 text-white' : (st.feeStatus === 'FREE_CARD' ? 'bg-purple-600 text-white' : 'bg-slate-800 text-slate-400 border border-slate-700')}`}>
                               {st.feeStatus}
                             </span>
+                          </td>
+                          <td className="p-3 text-right whitespace-nowrap">
+                            {st.feeStatus === 'FREE_CARD' ? (
+                              <span className="text-[11px] text-purple-300 font-semibold">Free</span>
+                            ) : st.feeStatus === 'PENDING' ? (
+                              <span className="text-slate-400" title="Monthly class fee (not paid yet)">
+                                Rs. {(Number(st.amount) || 0).toLocaleString()} <span className="text-[9px] text-slate-500">due</span>
+                              </span>
+                            ) : (
+                              <span className="font-bold text-emerald-400">Rs. {(Number(st.amount) || 0).toLocaleString()}</span>
+                            )}
+                          </td>
+                          <td className="p-3">
+                            {st.lateFees && st.lateFees.length > 0 ? (
+                              <div className="flex flex-col gap-1">
+                                <span className="font-bold text-amber-300 whitespace-nowrap">Rs. {lateFeeTotal(st).toLocaleString()}</span>
+                                <div className="flex flex-wrap gap-1">
+                                  {st.lateFees.map((lf, lfI) => (
+                                    <span key={lfI} className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-300 border border-amber-500/30 text-[9px] font-bold whitespace-nowrap">
+                                      <Clock size={9} /> {formatMonthYear(lf.feeMonth)}: Rs. {(Number(lf.amount) || 0).toLocaleString()}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            ) : (
+                              <span className="text-slate-600">-</span>
+                            )}
                           </td>
                           <td className="p-3 text-right">
                             <button
