@@ -36,6 +36,14 @@ const STAFF_PREFIXES = [
     '/api/library/admin',
     '/api/public/voice-agent/recent-bookings',
     '/api/public/voice-agent/booking',
+    // Staff tools that also exist under /api/student (the staff UI uses the /api/admin
+    // versions). A student could reset ANY student's password, change ANY user's phone
+    // number (= take over the account) and download every student's details.
+    '/api/student/admin-update',
+    '/api/student/admin-reset-password',
+    '/api/student/admin-delete',
+    '/api/student/ghost-login',
+    '/api/student/data-center',
 ];
 
 // Paths that must stay reachable by external services (Meta / WhatsApp webhooks).

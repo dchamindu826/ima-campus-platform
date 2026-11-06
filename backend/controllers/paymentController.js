@@ -791,6 +791,11 @@ exports.paymentAction = async (req, res) => {
         const payRecord = await prisma.payment.findUnique({ where: { id: parseInt(paymentId) } });
         if (!payRecord) return res.status(404).json({ error: "Payment not found" });
 
+        // Status rules (src/modules/payments/rules.js): e.g. an approved payment can't be approved again.
+        const actionCheck = require('../src/modules/payments/rules').checkStaffAction(payRecord.status, action);
+        if (!actionCheck.ok) return res.status(409).json({ error: actionCheck.message, code: actionCheck.code });
+        let walletIncrement = 0;
+
         // 🔥 Send to Delivery Hub manually for Free Cards / Discounts
         if (action === 'SendToDelivery') {
             const existingDelivery = await prisma.delivery.findUnique({ where: { paymentId: parseInt(paymentId) } });
@@ -856,10 +861,8 @@ exports.paymentAction = async (req, res) => {
             const totalWalletIncrement = difference + appliedWalletBalance;
 
             if (totalWalletIncrement !== 0) {
-                await prisma.user.update({
-                    where: { id: payRecord.studentId },
-                    data: { walletBalance: { increment: totalWalletIncrement } }
-                });
+                // Applied together with the status change below, in one transaction.
+                walletIncrement = totalWalletIncrement;
                 updateData.excessAmount = difference > 0 ? difference : 0;
                 updateData.arrearsAmount = difference < 0 ? Math.abs(difference) : 0;
 
@@ -895,10 +898,24 @@ exports.paymentAction = async (req, res) => {
                 : (payRecord.remark ? `${payRecord.remark}\n\n[ADMIN]: ${remark}` : `[ADMIN]: ${remark}`);
         }
 
-        const updatedPayment = await prisma.payment.update({
-            where: { id: parseInt(paymentId) },
-            data: updateData
+        // Change status + wallet atomically, and only if nobody changed the payment meanwhile
+        // (double click, two staff approving at once).
+        const { changeStatusIfUnchanged } = require('../src/modules/payments/service');
+        const applied = await prisma.$transaction(async (tx) => {
+            const ok = await changeStatusIfUnchanged(tx, payRecord.id, payRecord.status, updateData);
+            if (!ok) return false;
+            if (walletIncrement !== 0) {
+                await tx.user.update({
+                    where: { id: payRecord.studentId },
+                    data: { walletBalance: { increment: walletIncrement } }
+                });
+            }
+            return true;
         });
+        if (!applied) {
+            return res.status(409).json({ error: "This payment was just changed by someone else. Refresh and check it again.", code: 'CHANGED_MEANWHILE' });
+        }
+        const updatedPayment = await prisma.payment.findUnique({ where: { id: payRecord.id } });
 
         // Sync leads and CRM
         if (['Approve', 'Free Card', 'Discount'].includes(action)) {
@@ -1014,6 +1031,11 @@ exports.approveInstallment = async (req, res) => {
         const payRecord = await prisma.payment.findUnique({ where: { id: parseInt(paymentId) } });
         if (!payRecord) return res.status(404).json({ error: "Payment not found" });
 
+        // Status rules (src/modules/payments/rules.js): e.g. an approved payment can't be approved again.
+        const actionCheck = require('../src/modules/payments/rules').checkStaffAction(payRecord.status, 'Approve');
+        if (!actionCheck.ok) return res.status(409).json({ error: actionCheck.message, code: actionCheck.code });
+        let walletIncrement = 0;
+
         let updateData = { status: 1, post_pay_days: 0 };
         if (adminId) {
             updateData.actionedById = parseInt(adminId);
@@ -1036,10 +1058,8 @@ exports.approveInstallment = async (req, res) => {
         const totalWalletIncrement = difference + appliedWalletBalance;
 
         if (totalWalletIncrement !== 0) {
-            await prisma.user.update({
-                where: { id: payRecord.studentId },
-                data: { walletBalance: { increment: totalWalletIncrement } }
-            });
+            // Applied together with the status change below, in one transaction.
+            walletIncrement = totalWalletIncrement;
             updateData.excessAmount = difference > 0 ? difference : 0;
             updateData.arrearsAmount = difference < 0 ? Math.abs(difference) : 0;
 
@@ -1061,10 +1081,24 @@ exports.approveInstallment = async (req, res) => {
             updateData.due_date = new Date(nextDueDate);
         }
 
-        const updatedPayment = await prisma.payment.update({
-            where: { id: parseInt(paymentId) },
-            data: updateData
+        // Change status + wallet atomically, and only if nobody changed the payment meanwhile
+        // (double click, two staff approving at once).
+        const { changeStatusIfUnchanged } = require('../src/modules/payments/service');
+        const applied = await prisma.$transaction(async (tx) => {
+            const ok = await changeStatusIfUnchanged(tx, payRecord.id, payRecord.status, updateData);
+            if (!ok) return false;
+            if (walletIncrement !== 0) {
+                await tx.user.update({
+                    where: { id: payRecord.studentId },
+                    data: { walletBalance: { increment: walletIncrement } }
+                });
+            }
+            return true;
         });
+        if (!applied) {
+            return res.status(409).json({ error: "This payment was just changed by someone else. Refresh and check it again.", code: 'CHANGED_MEANWHILE' });
+        }
+        const updatedPayment = await prisma.payment.findUnique({ where: { id: payRecord.id } });
 
         await syncLeadEnrollment(updatedPayment.studentId, updatedPayment.payment_type, updatedPayment);
 

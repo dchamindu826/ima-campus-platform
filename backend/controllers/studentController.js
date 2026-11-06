@@ -888,6 +888,12 @@ exports.generatePayHereHash = async (req, res) => {
         const hashString = merchantId + orderId + amountFormatted + currency + hashedSecret;
         const hash = crypto.createHash('md5').update(hashString).digest('hex').toUpperCase();
 
+        // Remember this order server-side, so only PayHere's own notify can approve it.
+        await require('../src/modules/payments/service').recordGatewayStart('payhere', orderId, {
+            studentId: req.user?.userId || req.user?.id,
+            amount: amountFormatted,
+        });
+
         res.status(200).json({ hash, amount: amountFormatted });
     } catch (error) {
         console.error("PayHere Hash Error:", error);
@@ -895,7 +901,7 @@ exports.generatePayHereHash = async (req, res) => {
     }
 };
 
-// 🔥 NEW: PayHere Notify Webhook
+// 🔥 PayHere Notify Webhook (server-to-server — the ONLY thing that may approve a PayHere payment)
 exports.payhereNotify = async (req, res) => {
     try {
         const { merchant_id, order_id, payhere_amount, payhere_currency, status_code, md5sig } = req.body;
@@ -906,47 +912,51 @@ exports.payhereNotify = async (req, res) => {
             return res.status(500).send("Configuration Error");
         }
 
-        const hashedSecret = crypto.createHash('md5').update(merchantSecret).digest('hex').toUpperCase();
-        const hashString = merchant_id + order_id + payhere_amount + payhere_currency + status_code + hashedSecret;
-        const localMd5sig = crypto.createHash('md5').update(hashString).digest('hex').toUpperCase();
+        const payRules = require('../src/modules/payments/rules');
+        const payService = require('../src/modules/payments/service');
+        const localMd5sig = payRules.payhereSignature({
+            merchantId: merchant_id, orderId: order_id, amount: payhere_amount,
+            currency: payhere_currency, statusCode: status_code, secret: merchantSecret,
+        });
 
-        if (localMd5sig === md5sig && status_code === "2") {
-            const numericId = parseInt(order_id);
-            if (!isNaN(numericId)) {
-                const existingPayment = await prisma.payment.findUnique({ where: { id: numericId } });
-                if (existingPayment) {
-                    // 🛡️ CRITICAL SECURITY CHECK: Prevent Price Tampering / Underpayment Exploit
-                    const expectedAmount = parseFloat(existingPayment.amount);
-                    const paidAmount = parseFloat(payhere_amount);
-
-                    if (paidAmount < expectedAmount) {
-                        console.error(`🚨 [PayHere Underpayment Alert] Tampered amount detected for Order ${order_id}: Expected Rs. ${expectedAmount}, Paid Rs. ${paidAmount}`);
-                        await prisma.payment.update({
-                            where: { id: numericId },
-                            data: { status: -2 } // -2: Tampered / Underpaid
-                        });
-                        return res.status(400).send("Underpayment Detected");
-                    }
-
-                    console.log(`[PayHere] Payment successfully verified for Order ID: ${order_id}, Amount: Rs. ${paidAmount}`);
-                    
-                    const updatedPayment = await prisma.payment.update({
-                        where: { id: numericId },
-                        data: { status: 1 } 
-                    });
-
-            if (updatedPayment.subjects) {
-                try {
-                    const { createAutoDeliveryForPayment } = require('./paymentController');
-                    await createAutoDeliveryForPayment(updatedPayment);
-                } catch (delErr) {
-                    console.error("Auto Delivery Error in payhereNotify:", delErr);
-                }
-            }
-                }
-            }
+        if (localMd5sig !== md5sig) {
+            console.warn(`[PayHere] Invalid signature for order ${order_id}`);
+            return res.status(200).send("OK");
         }
-        
+        if (String(status_code) !== "2") {
+            console.log(`[PayHere] Order ${order_id} status_code=${status_code} (not successful)`);
+            return res.status(200).send("OK");
+        }
+
+        await payService.recordGatewayConfirmed('payhere', order_id, { paidAmount: payhere_amount, raw: { status_code, payhere_currency } });
+        console.log(`[PayHere] Verified payment for order ${order_id}, Rs. ${payhere_amount}`);
+
+        const { createAutoDeliveryForPayment, syncLeadEnrollment } = require('./paymentController');
+        const afterApprove = async (payment) => {
+            if (payment.subjects) {
+                try { await createAutoDeliveryForPayment(payment); } catch (e) { console.error("Auto Delivery Error in payhereNotify:", e); }
+            }
+            try { await syncLeadEnrollment(payment.studentId, payment.payment_type, payment); } catch (e) { console.error("CRM Sync Error in payhereNotify:", e); }
+        };
+
+        const numericId = parseInt(order_id);
+        if (!isNaN(numericId) && String(numericId) === String(order_id).trim()) {
+            // Due / installment payment: order_id is the Payment id
+            const existingPayment = await prisma.payment.findUnique({ where: { id: numericId } });
+            if (existingPayment && existingPayment.status !== 1) {
+                const paidAmount = parseFloat(payhere_amount);
+                if (paidAmount + 0.01 < parseFloat(existingPayment.amount)) {
+                    console.error(`🚨 [PayHere Underpayment] Order ${order_id}: expected Rs. ${existingPayment.amount}, paid Rs. ${paidAmount}`);
+                    await payService.changeStatusIfUnchanged(prisma, numericId, existingPayment.status, { status: -2 });
+                } else if (await payService.changeStatusIfUnchanged(prisma, numericId, existingPayment.status, { status: 1, method: 'PayHere' })) {
+                    await afterApprove({ ...existingPayment, status: 1 });
+                }
+            }
+        } else {
+            // New enrollment: order_id is "ORD-..."; approve the pending payments created for it (if any yet)
+            await payService.approvePendingForOrder('payhere', order_id, afterApprove);
+        }
+
         res.status(200).send("OK");
     } catch (error) {
         console.error("PayHere Notify Error:", error);
@@ -965,7 +975,22 @@ exports.enrollStudent = async (req, res) => {
             : null;
 
         const safeMethod = String(method || '').toLowerCase().trim();
-        const initialStatus = (safeMethod === 'payhere' || safeMethod === 'paycorp') ? 1 : 0;
+        // Online payments are approved ONLY if the gateway confirmed them to this server
+        // (PayHere notify / Paycorp complete). The browser saying "completed" is not enough.
+        const payService = require('../src/modules/payments/service');
+        const payRules = require('../src/modules/payments/rules');
+        const isOnline = Boolean(payRules.normGateway(safeMethod));
+        const onlineClaim = isOnline
+            ? await payService.claimOnlinePayment(safeMethod, orderId, { studentId: parseInt(studentId), amount })
+            : { approve: false, reason: 'not-online' };
+        const initialStatus = onlineClaim.approve ? 1 : 0;
+        // Pending online payments carry a marker, so a late gateway confirmation can approve them.
+        const tagPendingOnline = async (payment) => {
+            if (!isOnline || initialStatus === 1 || !orderId) return payment;
+            const note = `${payRules.onlineMarker(safeMethod, orderId)} Waiting for gateway confirmation (${onlineClaim.reason})`;
+            console.warn(`[Enroll] ${safeMethod} payment ${payment.id} for student ${studentId} left PENDING: ${onlineClaim.reason}`);
+            return prisma.payment.update({ where: { id: payment.id }, data: { remark: payment.remark ? `${payment.remark}\n${note}` : note } });
+        };
 
         const resolveTargetFullGroupId = async (batchId, candidateGroupId, subjectIds) => {
             let resolvedId = candidateGroupId ? parseInt(candidateGroupId) : null;
@@ -1107,8 +1132,9 @@ exports.enrollStudent = async (req, res) => {
                     }
                 });
 
-                // PayHere/Paycorp Delivery Auto-Create Logic...
-                if ((safeMethod === 'payhere' || safeMethod === 'paycorp') && newPayment.subjects) {
+                await tagPendingOnline(newPayment);
+                // PayHere/Paycorp Delivery Auto-Create Logic (only once the payment is really approved)
+                if (initialStatus === 1 && newPayment.subjects) {
                     try {
                         const { createAutoDeliveryForPayment } = require('./paymentController');
                         await createAutoDeliveryForPayment(newPayment);
@@ -1130,7 +1156,7 @@ exports.enrollStudent = async (req, res) => {
                 createdPayments.push(newPayment);
             }
 
-            return res.status(200).json({ message: safeMethod === 'payhere' ? "Payments Approved & Enrolled" : "Enrolled Successfully", payments: createdPayments });
+            return res.status(200).json({ message: initialStatus === 1 ? "Payments Approved & Enrolled" : "Enrolled Successfully", payments: createdPayments });
         }
 
         // ----------------------------------------------------
@@ -1216,8 +1242,9 @@ exports.enrollStudent = async (req, res) => {
             }
         });
 
-        // PayHere/Paycorp Delivery Auto-Create Logic...
-        if ((safeMethod === 'payhere' || safeMethod === 'paycorp') && newPayment.subjects) {
+        await tagPendingOnline(newPayment);
+        // PayHere/Paycorp Delivery Auto-Create Logic (only once the payment is really approved)
+        if (initialStatus === 1 && newPayment.subjects) {
             try {
                 const { createAutoDeliveryForPayment } = require('./paymentController');
                 await createAutoDeliveryForPayment(newPayment);
@@ -1233,7 +1260,7 @@ exports.enrollStudent = async (req, res) => {
             console.error("CRM Sync Error in enrollStudent:", e);
         }
 
-        res.status(200).json({ message: safeMethod === 'payhere' ? "Payment Approved & Enrolled" : "Enrolled Successfully" });
+        res.status(200).json({ message: initialStatus === 1 ? "Payment Approved & Enrolled" : "Enrolled Successfully" });
     } catch (error) {
         console.error("Enrollment Save Error:", error);
         res.status(500).json({ error: "Enrollment failed" });
@@ -2502,10 +2529,17 @@ exports.payDueOnline = async (req, res) => {
         const studentId = parseInt(rawStudentId);
 
         const safeMethod = method === 'payhere' || method === 'PayHere' ? 'PayHere' : 'Paycorp';
+        const payService = require('../src/modules/payments/service');
+        const payRules = require('../src/modules/payments/rules');
+        const gatewayRef = `Sampath IPG ID: ${orderId || 'Direct'}`;
 
         let updatedPayment;
+        let claim;
 
         if (isVirtual === 'true' || String(paymentId).startsWith('virtual_')) {
+            // Only the gateway's server-side confirmation may make this payment approved.
+            claim = await payService.claimOnlinePayment(safeMethod, orderId, { studentId, amount });
+            const marker = claim.approve ? '' : ` ${payRules.onlineMarker(safeMethod.toLowerCase(), orderId)} Waiting for gateway confirmation (${claim.reason})`;
             updatedPayment = await prisma.payment.create({
                 data: {
                     studentId: studentId,
@@ -2515,9 +2549,9 @@ exports.payDueOnline = async (req, res) => {
                     amount: parseFloat(amount),
                     subjects: subjects || '[]',
                     payment_type: 1, // Monthly
-                    status: 1, // Approved
+                    status: claim.approve ? 1 : 0,
                     method: safeMethod,
-                    remark: `Sampath IPG ID: ${orderId || 'Direct'}`,
+                    remark: `${gatewayRef}${marker}`,
                     due_date: null
                 }
             });
@@ -2527,16 +2561,24 @@ exports.payDueOnline = async (req, res) => {
             });
 
             if (!payment) return res.status(404).json({ error: "Payment not found" });
+            if (payment.status === 1) return res.status(200).json({ message: "Payment already approved" });
 
-            // update the payment as paid via Paycorp / Sampath IPG
-            updatedPayment = await prisma.payment.update({
-                where: { id: parseInt(paymentId) },
-                data: {
-                    status: 1,
-                    method: safeMethod,
-                    remark: payment.remark ? `${payment.remark} | Sampath IPG ID: ${orderId || 'Direct'}` : `Sampath IPG ID: ${orderId || 'Direct'}`
-                }
-            });
+            claim = await payService.claimOnlinePayment(safeMethod, orderId, { studentId, amount: payment.amount });
+            const marker = claim.approve ? '' : ` ${payRules.onlineMarker(safeMethod.toLowerCase(), orderId)} Waiting for gateway confirmation (${claim.reason})`;
+            const newRemark = payment.remark ? `${payment.remark} | ${gatewayRef}${marker}` : `${gatewayRef}${marker}`;
+
+            if (claim.approve) {
+                const changed = await payService.changeStatusIfUnchanged(prisma, payment.id, payment.status, { status: 1, method: safeMethod, remark: newRemark });
+                if (!changed) return res.status(200).json({ message: "Payment already updated" });
+                updatedPayment = { ...payment, status: 1, method: safeMethod, remark: newRemark };
+            } else {
+                updatedPayment = await prisma.payment.update({ where: { id: payment.id }, data: { method: safeMethod, remark: newRemark } });
+            }
+        }
+
+        if (!claim.approve) {
+            console.warn(`[PayDueOnline] ${safeMethod} payment ${updatedPayment.id} for student ${studentId} left PENDING: ${claim.reason}`);
+            return res.status(200).json({ message: "Payment received. It will be confirmed shortly.", pending: true });
         }
 
         // 🔥 Auto-Delivery Creation for Online Due Payment

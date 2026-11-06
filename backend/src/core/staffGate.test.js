@@ -27,6 +27,8 @@ const STAFF_PATHS = [
     '/api/after-seminar-crm/leads/master-directory', '/api/coordinator-crm/quick-replies',
     '/api/petty-cash/requests', '/api/mobile/staff/overview', '/api/library/admin/structure',
     '/api/public/voice-agent/recent-bookings', '/api/public/voice-agent/booking/7',
+    '/api/student/admin-reset-password', '/api/student/admin-update', '/api/student/data-center',
+    '/api/student/ghost-login', '/api/student/admin-delete',
 ];
 
 test('student web/app paths are never gated', () => {

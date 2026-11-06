@@ -1482,15 +1482,19 @@ Format:
         } else if (matchedRowIndex !== -1 && confidence >= 0.80 && allExtractions.length === 1) {
             if (autoVerify) {
                 const breakdownText = extracted.breakdown ? `\nBreakdown:\n${extracted.breakdown}` : '';
-                const updatedPay = await prisma.payment.update({
-                    where: { id: payment.id },
-                    data: { 
+                const aiApproveData = { 
                         status: 1, 
                         aiVerified: true, 
                         aiConfidence: confidence || 0.96,
                         remark: `AI Verified: ${matchMethod}\n\n--- AI Extraction ---\nBank: ${extracted.matched_bank || 'Unknown'}\nType: ${extracted.matched_slip_type || 'Unknown'}\nExtracted ID: ${extracted.transaction_id || 'null'} (Cleaned: ${cleanTxnId})\nExtracted Total: LKR ${totalExtractedAmount.toLocaleString()}\nTarget Amount: LKR ${targetAmount.toLocaleString()}${breakdownText}`
-                    }
-                });
+                };
+                // Approve only once: skip if already approved or changed meanwhile (scheduled + manual
+                // AI runs on the same slip used to approve it twice and repeat delivery / CRM / installment).
+                const { changeStatusIfUnchanged } = require('../src/modules/payments/service');
+                if (payment.status === 1 || !(await changeStatusIfUnchanged(prisma, payment.id, payment.status, aiApproveData))) {
+                    return res.status(200).json({ success: true, status: 'ALREADY_APPROVED', matched: true, message: 'Payment was already approved — nothing changed.' });
+                }
+                const updatedPay = await prisma.payment.findUnique({ where: { id: payment.id } });
 
                 // Trigger ContentHub Auto Delivery Creation
                 await createDeliveryForVerifiedPayment(updatedPay);
