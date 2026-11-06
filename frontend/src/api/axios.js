@@ -97,4 +97,14 @@ api.interceptors.response.use((response) => {
     return Promise.reject(error);
 });
 
+// For links a browser opens directly (<audio src>, window.open) where no
+// Authorization header can be sent: adds ?token= so protected files still load.
+export const withAuthToken = (url) => {
+    const token = localStorage.getItem('token') || localStorage.getItem('userToken') || localStorage.getItem('admin_token');
+    if (!token || !url) return url;
+    const [base, hash] = String(url).split('#');
+    const sep = base.includes('?') ? '&' : '?';
+    return `${base}${sep}token=${encodeURIComponent(token)}${hash !== undefined ? '#' + hash : ''}`;
+};
+
 export default api;

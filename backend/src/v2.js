@@ -8,6 +8,7 @@ const router = express.Router();
 
 router.use('/entitlements', require('./modules/entitlement/routes'));
 router.use('/delivery', require('./modules/delivery/routes'));
+router.use('/content', require('./modules/content/routes'));
 
 router.use(errorHandler);
 

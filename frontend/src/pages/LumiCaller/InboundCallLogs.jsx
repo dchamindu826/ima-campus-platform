@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import api from '../../api/axios';
+import api, { withAuthToken } from '../../api/axios';
 import { Calendar, Phone, Play, Square, Building2, User, Clock, AlertCircle, ChevronDown, ChevronUp, Search, BrainCircuit, MessageSquare, StickyNote, Activity } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -60,7 +60,7 @@ const InboundCallLogs = ({ businesses, direction = 'INBOUND', subType }) => {
             audioRef.current.pause();
             setPlaying(null);
         } else {
-            audioRef.current.src = api.defaults.baseURL.replace('/api', '') + '/storage/recordings/' + url;
+            audioRef.current.src = withAuthToken(api.defaults.baseURL.replace('/api', '') + '/storage/recordings/' + url);
             audioRef.current.play().catch(e => toast.error("Could not play recording"));
             setPlaying(id);
         }
@@ -297,7 +297,7 @@ const InboundCallLogs = ({ businesses, direction = 'INBOUND', subType }) => {
                                                 controls 
                                                 controlsList="nodownload"
                                                 className="h-8 w-56 outline-none rounded-full" 
-                                                src={`${api.defaults.baseURL.replace('/api', '')}/storage/recordings/${log.recordingUrl}#t=0.001`}
+                                                src={withAuthToken(`${api.defaults.baseURL.replace('/api', '')}/storage/recordings/${log.recordingUrl}#t=0.001`)}
                                             />
                                         )}
                                         <button 

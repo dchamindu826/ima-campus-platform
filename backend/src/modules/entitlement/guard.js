@@ -53,4 +53,23 @@ const guardContentParam = (param = 'contentId') => async (req, res, next) => {
     if (await check(req, res, 'content', req.params[param], service.canAccessContent)) next();
 };
 
-module.exports = { guardCourseParam, guardContentParam, enforcing };
+/**
+ * Guard for content LINKS opened straight from a browser / WebView (live class
+ * redirect, Zoom MP4 link). The token may be in the header or ?token=.
+ * Shadow mode: requests without login are only logged; ENTITLEMENT_ENFORCE=true
+ * makes them 401 and non-enrolled students 403.
+ * @param {(req) => any} getId  where the content id is
+ */
+const guardContentLink = (getId) => async (req, res, next) => {
+    const { readUser } = require('../../core/linkAuth');
+    const id = getId(req);
+    const user = await readUser(req);
+    if (!user) {
+        if (enforcing()) return res.status(401).json({ error: 'LOGIN_REQUIRED', message: 'Please log in to open this class.' });
+        console.warn(`[entitlement:shadow] would deny no-login content=${id} path=${req.path}`);
+        return next();
+    }
+    if (await check(req, res, 'content', id, service.canAccessContent)) next();
+};
+
+module.exports = { guardCourseParam, guardContentParam, guardContentLink, enforcing };

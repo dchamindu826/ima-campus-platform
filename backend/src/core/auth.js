@@ -3,7 +3,8 @@
 // Every v2 route must use `authenticate` plus one of the role guards below.
 // A route without a guard is a bug (see ARCHITECTURE.md, rule 4).
 
-const verifyToken = require('../../middlewares/authMiddleware');
+// Loaded on first use so pure modules (and tests) can use normRole/isStudent without a DB client.
+const verifyToken = (req, res, next) => require('../../middlewares/authMiddleware')(req, res, next);
 
 const ADMIN_ROLES = ['SYSTEM_ADMIN', 'SUPER_ADMIN', 'ADMIN', 'DIRECTOR'];
 

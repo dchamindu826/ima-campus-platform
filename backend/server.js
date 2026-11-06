@@ -149,8 +149,10 @@ app.use('/storage/users', express.static(path.join(__dirname, 'storage/users')))
 app.use('/api/storage/users', express.static(path.join(__dirname, 'storage/users')));
 app.use('/storage/users', express.static(path.join(__dirname, '../storage/users')));
 app.use('/api/storage/users', express.static(path.join(__dirname, '../storage/users')));
-app.use('/storage/recordings', express.static(path.join(__dirname, '../storage/recordings')));
-app.use('/api/storage/recordings', express.static(path.join(__dirname, '../storage/recordings')));
+// Call recordings are private: staff token required (header or ?token=).
+const { requireStaffLink } = require('./src/core/linkAuth');
+app.use('/storage/recordings', requireStaffLink, express.static(path.join(__dirname, '../storage/recordings')));
+app.use('/api/storage/recordings', requireStaffLink, express.static(path.join(__dirname, '../storage/recordings')));
 
 // 🔥 IMA Pusthakalaya (Library) Static Uploads
 app.use('/uploads/library', express.static(path.join(__dirname, 'uploads/library')));
@@ -160,8 +162,8 @@ app.use('/api/uploads/library', express.static(path.join(__dirname, 'uploads/lib
 app.use('/storage/petty_cash', express.static(path.join(__dirname, 'storage/petty_cash')));
 app.use('/api/storage/petty_cash', express.static(path.join(__dirname, 'storage/petty_cash')));
 
-// Public Audio Route for WhatsApp Call recordings (bypass auth)
-app.get('/api/public/whatsapp-recording/:filename', require('./controllers/whatsappCallController').getRecording);
+// WhatsApp call recordings: staff only (the <audio> tag passes ?token=).
+app.get('/api/public/whatsapp-recording/:filename', requireStaffLink, require('./controllers/whatsappCallController').getRecording);
 
 // 🔥 SMART WHATSAPP ROTATOR & INSTANT QR REDIRECT 🔥
 // ================= STAFF GATE (see src/core/staffGate.js) =================
