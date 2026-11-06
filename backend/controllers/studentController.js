@@ -1800,13 +1800,9 @@ exports.getCourseModules = async (req, res) => {
                 }
             }
 
-            // Auto-heal DB link asynchronously if missing or mismatched
-            if (finalGroupId && c.contentGroupId !== finalGroupId) {
-                prisma.content.update({
-                    where: { id: c.id },
-                    data: { contentGroupId: finalGroupId }
-                }).catch(() => {});
-            }
+            // Display-only: the folder is NOT written back to the database. Read requests used to
+            // "auto-heal" contentGroupId, and web, app and Content Hub each guessed differently, so
+            // recordings kept moving between folders. Only staff (Content Hub edit) change folders now.
 
             return {
                 ...c,

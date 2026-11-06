@@ -33,3 +33,14 @@ test('items without any media are never merged', () => {
     ];
     assert.equal(dedupeContents(contents).length, 2);
 });
+
+test('misfiled: folder of another batch, or wrong folder type', () => {
+    const R = require('./rules');
+    const folder = { batchId: 5, additionalBatchIds: ',9,', type: 2 };
+    assert.equal(R.misfileReason({ batchId: 5, contentType: 'recording' }, folder), null);
+    assert.equal(R.misfileReason({ batchId: 9, contentType: 'recording' }, folder), null, 'additional batch ok');
+    assert.equal(R.misfileReason({ batchId: 7, contentType: 'recording' }, folder), 'folder-batch-mismatch');
+    assert.equal(R.misfileReason({ batchId: 5, contentType: 'live' }, folder), 'folder-type-mismatch');
+    assert.equal(R.misfileReason({ batchId: 5, contentType: 'document' }, folder), null, 'documents in recording folders allowed');
+    assert.equal(R.misfileReason({ batchId: 5, contentType: 'recording' }, null), null);
+});

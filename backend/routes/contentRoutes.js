@@ -115,8 +115,10 @@ router.put('/course-setup/batch/toggle-status', verifyToken, requireStaff, contr
 
 // ================= ZOOM DYNAMIC DOWNLOAD ROUTE =================
 // 🔥 NEW: Zoom API එක හරහා fresh MP4 ලින්ක් එකක් අරන් App එකට JSON එකක් විදිහට දෙන Route එක 🔥
-router.get('/mobile/zoom-direct-link/:contentId', controller.getZoomDirectLinkJson);
-router.get('/zoom-direct-link/:contentId', controller.getZoomDirectLinkJson);
+// Login + enrollment required (shadow mode logs only, until ENTITLEMENT_ENFORCE=true).
+const zoomLinkGuard = require('../src/modules/entitlement/guard').guardContentLink((req) => req.params.contentId);
+router.get('/mobile/zoom-direct-link/:contentId', zoomLinkGuard, controller.getZoomDirectLinkJson);
+router.get('/zoom-direct-link/:contentId', zoomLinkGuard, controller.getZoomDirectLinkJson);
 
 // ================= APP EVENTS (ANIMATIONS) =================
 // 🔥 Admin Panel එකෙන් Animation එක Set කරන්න සහ බලන්න 🔥

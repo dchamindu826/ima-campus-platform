@@ -93,7 +93,7 @@ router.post('/staff/fcm-token', verifyToken, mobileStaffController.updateFcmToke
 router.post('/staff/agent-status', verifyToken, mobileStaffController.updateAgentStatus);
 
 router.get('/yt-redirect', mobileStudentController.ytRedirect);
-router.get('/live-portal', mobileStudentController.getLivePortal);
+router.get('/live-portal', require('../../src/modules/entitlement/guard').guardContentLink((req) => req.query.id), mobileStudentController.getLivePortal);
 router.get('/app-event', mobileStudentController.getActiveAppEvent);
 
 module.exports = router;

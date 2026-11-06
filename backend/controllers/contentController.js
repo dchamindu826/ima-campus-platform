@@ -1719,13 +1719,9 @@ exports.getContents = async (req, res) => {
                 }
             }
 
-            // 4. Auto-healing: If content was unlinked (null), persist finalGroupId in DB
-            if (!c.contentGroupId && finalGroupId) {
-                prisma.content.update({
-                    where: { id: c.id },
-                    data: { contentGroupId: finalGroupId }
-                }).catch(() => {});
-            }
+            // Display-only: the folder is NOT written back to the database. Read requests used to
+            // "auto-heal" contentGroupId, and web, app and Content Hub each guessed differently, so
+            // recordings kept moving between folders. Only staff (Content Hub edit) change folders now.
 
             return {
                 ...cleanContent,

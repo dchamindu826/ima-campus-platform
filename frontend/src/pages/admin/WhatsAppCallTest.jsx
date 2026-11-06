@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { PhoneCall, Phone, PhoneOff, Mic, MicOff, Volume2, VolumeX, AlertTriangle, Activity, User, BookOpen, Brain, HeartPulse } from 'lucide-react';
 import toast from 'react-hot-toast';
-import api from '../../api/axios';
+import api, { withAuthToken } from '../../api/axios';
 import { io } from 'socket.io-client';
 
 export default function WhatsAppCallTest({ loggedInUser, externalSocket, globalStatus }) {
@@ -452,7 +452,7 @@ export default function WhatsAppCallTest({ loggedInUser, externalSocket, globalS
                 </div>
                 {aiResult.recordingUrl && (
                     <div className="ml-auto bg-black/40 p-2 rounded-xl border border-white/10 flex items-center shadow-inner">
-                        <audio controls className="h-10 w-64 outline-none" src={`${api.defaults.baseURL}/public/whatsapp-recording/${aiResult.recordingUrl}`} />
+                        <audio controls className="h-10 w-64 outline-none" src={withAuthToken(`${api.defaults.baseURL}/public/whatsapp-recording/${aiResult.recordingUrl}`)} />
                     </div>
                 )}
             </div>

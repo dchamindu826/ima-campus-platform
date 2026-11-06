@@ -72,7 +72,8 @@ backend/
 | 2a | `payments` | online payments approved only by gateway confirmation; PayHere notify works; no double approve | ✅ done |
 | 2b | `payments` | server-side price check (shadow → `PRICING_ENFORCE=true`) | ✅ done (shadow) |
 | 3 | `delivery` | daily reconciliation: missing deliveries + orphan deliveries; staff API | ✅ done (report mode) |
-| 4 | `content` | web + app use the same content API (no "web ok, app wrong") | |
+| 4 | `content` | read requests no longer move content between folders; live/Zoom links need login + enrollment; call recordings staff-only; misfiled-content report | ✅ done (links in shadow) |
+| 4b | `content` | web + app use the same module-content service (no "web ok, app wrong") | next |
 | 5 | `crm` | lead enrollment status derived from entitlement, not copied | |
 | 6 | `reports` | one query layer for all dashboards & stats | |
 | 7 | cleanup | delete replaced controllers; remaining modules | |
@@ -128,11 +129,12 @@ Guards start in **shadow mode**: they never block, they log:
 3. When the log only shows genuinely unpaid students, set `ENTITLEMENT_ENFORCE=true` in `.env`
    and restart. To roll back instantly, remove it and restart.
 
-### Known leaks left for step 4 (content)
+### Content links (closed in step 4)
 
-`GET /api/mobile/live-portal` and `GET /api/zoom-direct-link/:contentId` return Zoom links
-**without any login**, because the app opens them in an external browser. They need signed,
-short-lived links — done in the content module, together with an app update.
+`GET /api/mobile/live-portal` and `GET /api/zoom-direct-link/:contentId` returned Zoom links
+without any login. They now use `guardContentLink`: the token may come in the header or as
+`?token=` (a browser/WebView cannot send headers). Shadow mode logs
+`[entitlement:shadow] would deny no-login content=...`; `ENTITLEMENT_ENFORCE=true` blocks.
 
 ## Step 1.5 — security (done)
 
@@ -251,6 +253,27 @@ With `DELIVERY_AUTOFIX=true` it also creates the missing ones.
 
 **Step 3d:** reconcile and create skip tutes the student already has in any live delivery (any payment/group), so a late fix never sends a tute twice (`already-delivered-elsewhere`).
 Orphans are only reported — staff decide.
+
+## Step 4 — content (done)
+
+**Root cause of "recordings jump folders / show uncategorized / wrong month":** three read
+endpoints wrote to the database. Every time a student opened a module (web
+`studentController.getCourseModules`, app `mobileStudentController.getCourseModules`) or staff
+opened Content Hub (`contentController.getContents`), the code *guessed* a folder (month name in
+the title, the date, the root of a subfolder…) and saved it to `content.contentGroupId`. Web and
+app guessed differently, so content kept moving. These writes are removed; the guess is now used
+for display only. Folders change only when staff edit content.
+
+- `GET /api/v2/content/misfiled?days=120&batchId=` (staff): content in a folder of another batch
+  (`folder-batch-mismatch`) or wrong type (`folder-type-mismatch`, e.g. a recording in a live
+  folder), plus the number with no folder. Use it to fix what the old auto-heal moved.
+- Call recordings (`/storage/recordings/*`, `/api/public/whatsapp-recording/:f`) need a staff
+  token (header or `?token=`); the admin pages add it with `withAuthToken()` (frontend `api/axios.js`).
+- Live / Zoom links: see "Content links" above.
+
+Left for **4b**: web and app `getCourseModules` are still two copies (the app version has no
+"monthly payments across months" merge and a looser full-payment match). They will be moved into
+one `content` service; with `ENTITLEMENT_ENFORCE=true` the route guard already decides access for both.
 
 ## Running tests
 
