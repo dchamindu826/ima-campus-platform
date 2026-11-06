@@ -81,14 +81,35 @@ function paymentMonth(payment, groupName) {
     return [ym(y - 1, m), ym(y, m), ym(y + 1, m)].sort((a, b) => Math.abs(a - paidYm) - Math.abs(b - paidYm))[0];
 }
 
-/** Base (first) month of an intake: the earliest monthly group month. */
-function intakeBaseMonth(groups, createdAt) {
-    const ref = createdAt || Date.now();
-    const months = (groups || [])
-        .filter((g) => !/full|installment/i.test(g.name || ''))
-        .map((g) => paymentMonth({ created_at: g.createdAt || ref }, g.name))
-        .filter((x) => x !== null);
-    return months.length ? Math.min(...months) : null;
+/**
+ * First and last month of an intake from its monthly groups, in order (itemOrder, then id).
+ * Years are assigned walking forward: Sep, Oct, … Dec, Jan → next year. Groups without a
+ * month name and FULL / INSTALLMENT groups are ignored.
+ * @returns {{ base: number, last: number } | null}
+ */
+function intakeMonths(groups) {
+    const monthly = (groups || [])
+        .filter((g) => !/full|installment/i.test(g.name || '') && groupMonth(g.name) !== null)
+        .sort((a, b) => (Number(a.itemOrder) || 0) - (Number(b.itemOrder) || 0) || Number(a.id) - Number(b.id));
+    if (monthly.length === 0) return null;
+    const first = monthly[0];
+    let year = slDate(first.createdAt || Date.now()).getUTCFullYear();
+    // a group created in Dec for "January" belongs to next year
+    if (groupMonth(first.name) < slDate(first.createdAt || Date.now()).getUTCMonth() - 6) year++;
+    let prev = null;
+    const months = monthly.map((g) => {
+        const m = groupMonth(g.name);
+        if (prev !== null && m < prev) year++;
+        prev = m;
+        return ym(year, m);
+    });
+    return { base: months[0], last: Math.max(...months) };
+}
+
+/** Base (first) month of an intake. */
+function intakeBaseMonth(groups) {
+    const r = intakeMonths(groups);
+    return r ? r.base : null;
 }
 
 // ---- subjects ----
@@ -99,7 +120,7 @@ function subjectKey(courseName) {
     for (const w of SI) n = n.split(w).join(' ');
     n = n.replace(new RegExp(`\\b(${EN.join('|')}|jan|feb|mar|apr|jun|jul|aug|sept?|oct|nov|dec|month|monthly)\\b`, 'g'), ' ');
     n = n.replace(/\b(19|20)\d{2}\b/g, ' ');
-    return n.replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+    return n.replace(/[^\p{L}\p{M}\p{N}]+/gu, ' ').replace(/\s+/g, ' ').trim();
 }
 
 // ---- types ----
@@ -164,7 +185,9 @@ function deriveLeadEnrollment(lead, payments, now = new Date(), ctx = {}) {
         return { status: 'NON_ENROLLED', intention: null, evidence: true, reason: 'never-paid' };
     }
 
-    const base = ctx.baseMonthByBatch ? ctx.baseMonthByBatch.get(Number(lead.batchId)) : null;
+    const span = ctx.intakeByBatch ? ctx.intakeByBatch.get(Number(lead.batchId)) : null;
+    if (span && M > span.last) return { status: 'NON_ENROLLED', intention: 'MONTHLY', evidence: false, reason: 'intake-ended' };
+    const base = span ? span.base : (ctx.baseMonthByBatch ? ctx.baseMonthByBatch.get(Number(lead.batchId)) : null);
     if (base !== null && base !== undefined && M <= base) {
         if (nowPaid.length) return { status: 'ENROLLED', intention: 'MONTHLY', evidence: true, reason: 'base-month' };
         if (pendingNow.length) return { status: 'PAYMENT_PROCESSING', intention: 'MONTHLY', evidence: true };
@@ -222,6 +245,6 @@ function leadBusinessId(lead) {
 
 module.exports = {
     normPhone, last7, studentPhones,
-    groupMonth, activeMonth, paymentMonth, intakeBaseMonth, subjectKey,
+    groupMonth, activeMonth, paymentMonth, intakeMonths, intakeBaseMonth, subjectKey,
     deriveLeadEnrollment, currentStatus, leadChange, leadBusinessId, intentionOf,
 };

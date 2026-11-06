@@ -88,7 +88,20 @@ test('report kinds; old "PAID" counts as ENROLLED; NON_PAID equals NON_ENROLLED 
     assert.equal(R.leadChange({ enrollmentStatus: 'ENROLLED' }, { status: 'NON_ENROLLED', evidence: false }).kind, 'enrolled-without-payment');
 });
 
-test('intake base month = earliest monthly group', () => {
-    const gs = [{ name: 'JUNE MONTH', createdAt: SL('2026-06-01T00:00:00') }, { name: 'APRIL MONTH', createdAt: SL('2026-04-01T00:00:00') }, { name: 'FULL PAYMENT' }];
-    assert.equal(R.intakeBaseMonth(gs), 2026 * 12 + 3);
+test('intake months walk forward across the year end', () => {
+    const at = SL('2026-09-01T00:00:00');
+    const gs = ['SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER', 'JANUARY', 'FEBRUARY'].map((n, i) => ({ id: i + 1, itemOrder: i + 1, name: `${n} MONTH`, createdAt: at }))
+        .concat([{ id: 99, itemOrder: 0, name: 'FULL PAYMENT', createdAt: at }]);
+    assert.deepEqual(R.intakeMonths(gs), { base: 2026 * 12 + 8, last: 2027 * 12 + 1 });
+});
+
+test('finished intake: no non-paid after its last month', () => {
+    const intakeByBatch = new Map([[5, { base: 2026 * 12 + 3, last: 2026 * 12 + 5 }]]); // April–June
+    const may = pay({ groupId: 2, subjects: '[21,22]', created_at: SL('2026-05-02T10:00:00') });
+    const r = R.deriveLeadEnrollment({ batchId: 5 }, [april, may], SL('2026-08-10T10:00:00'), { ...ctx, intakeByBatch });
+    assert.deepEqual([r.reason, r.evidence], ['intake-ended', false]);
+});
+
+test('Sinhala subject names stay readable', () => {
+    assert.equal(R.subjectKey('Accounting (ගිණුම්කරණය) - October'), 'accounting ගිණුම්කරණය');
 });

@@ -42,12 +42,15 @@ async function loadIndex() {
     const paysByStudent = new Map();
     for (const p of payments) pushTo(paysByStudent, p.studentId, p);
 
-    const groups = await db().group.findMany({ select: { id: true, name: true, batchId: true, createdAt: true } });
+    const groups = await db().group.findMany({ select: { id: true, name: true, batchId: true, itemOrder: true, createdAt: true } });
     const groupNames = new Map(groups.map((g) => [g.id, g.name]));
     const groupsByBatch = new Map();
     for (const g of groups) pushTo(groupsByBatch, g.batchId, g);
-    const baseMonthByBatch = new Map();
-    for (const [batchId, gs] of groupsByBatch) baseMonthByBatch.set(Number(batchId), rules.intakeBaseMonth(gs));
+    const intakeByBatch = new Map();
+    for (const [batchId, gs] of groupsByBatch) {
+        const span = rules.intakeMonths(gs);
+        if (span) intakeByBatch.set(Number(batchId), span);
+    }
 
     const courses = await db().course.findMany({ select: { id: true, name: true } });
     const courseNames = new Map(courses.map((c) => [c.id, c.name]));
@@ -59,7 +62,7 @@ async function loadIndex() {
     const plansByBatchId = new Map();
     for (const pl of plans) pushTo(plansByBatchId, pl.batchId, pl);
 
-    return { byPhone, byLast7, paysByStudent, groupNames, baseMonthByBatch, courseNames, plansByBatchId };
+    return { byPhone, byLast7, paysByStudent, groupNames, intakeByBatch, courseNames, plansByBatchId };
 }
 
 /**
@@ -73,7 +76,7 @@ async function enrollmentReport({ batchId, businessId, now = new Date() } = {}) 
         select: { id: true, phone: true, batchId: true, campaignType: true, enrollmentStatus: true, paymentIntention: true, createdAt: true, batch: { select: { businessId: true } } },
     });
     const idx = await loadIndex();
-    const ctxBase = { groupNames: idx.groupNames, courseNames: idx.courseNames, baseMonthByBatch: idx.baseMonthByBatch };
+    const ctxBase = { groupNames: idx.groupNames, courseNames: idx.courseNames, intakeByBatch: idx.intakeByBatch };
 
     // One person counts once per intake: if the person already has an ENROLLED lead in that
     // intake, other leads are "secondary"; otherwise only the newest lead gets ENROLLED.
@@ -86,6 +89,7 @@ async function enrollmentReport({ batchId, businessId, now = new Date() } = {}) 
     let secondaryLeads = 0;
     let last7OnlyMatches = 0;
     let noIntake = 0;
+    let intakeEnded = 0;
 
     for (const lead of leads) {
         if (businessId && rules.leadBusinessId(lead) !== Number(businessId)) continue;
@@ -96,6 +100,7 @@ async function enrollmentReport({ batchId, businessId, now = new Date() } = {}) 
         const payments = students.flatMap((sid) => idx.paysByStudent.get(sid) || []);
         const overdueBatchIds = new Set(students.flatMap((sid) => [...computeOverdueBatchIds(idx.paysByStudent.get(sid) || [], idx.plansByBatchId, now)]));
         const derived = rules.deriveLeadEnrollment(lead, payments, now, { ...ctxBase, overdueBatchIds });
+        if (derived.reason === 'intake-ended') { intakeEnded++; continue; }
         if (derived.evidence) statusNow[derived.status] = (statusNow[derived.status] || 0) + 1;
         for (const d of derived.dropped || []) droppedSubjects[d] = (droppedSubjects[d] || 0) + 1;
 
@@ -122,7 +127,7 @@ async function enrollmentReport({ batchId, businessId, now = new Date() } = {}) 
     changes.push(...candidates.values());
     const counts = {};
     for (const c of changes) counts[c.kind] = (counts[c.kind] || 0) + 1;
-    return { scanned: leads.length, noIntake, statusNow, counts, changes, secondaryLeads, last7OnlyMatches, droppedSubjects };
+    return { scanned: leads.length, noIntake, intakeEnded, statusNow, counts, changes, secondaryLeads, last7OnlyMatches, droppedSubjects };
 }
 
 /** Apply only the safe kinds (ENROLLED / PAYMENT_PROCESSING), only if nobody changed the lead meanwhile. */
