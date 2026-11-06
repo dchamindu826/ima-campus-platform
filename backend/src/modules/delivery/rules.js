@@ -32,4 +32,15 @@ function autoFixable(payment) {
     return Number(payment.status) === 1 && Number(payment.amount) > 0 && manualOnlyReason(payment) === null;
 }
 
-module.exports = { NOT_SHIPPED, orphanReason, manualOnlyReason, autoFixable };
+/**
+ * The daily job only auto-creates RECENT missing deliveries (default 7 days).
+ * Older ones may already have been handed over by hand, so the delivery team decides
+ * those (GET /api/v2/delivery/reconcile + "create").
+ */
+function withinAutofixWindow(approvedAt, now = new Date(), days = 7) {
+    const t = new Date(approvedAt).getTime();
+    if (isNaN(t)) return false;
+    return now.getTime() - t <= Number(days) * 24 * 60 * 60 * 1000;
+}
+
+module.exports = { NOT_SHIPPED, orphanReason, manualOnlyReason, autoFixable, withinAutofixWindow };
