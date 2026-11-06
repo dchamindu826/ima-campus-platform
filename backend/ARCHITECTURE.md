@@ -248,6 +248,8 @@ With `DELIVERY_AUTOFIX=true` it also creates the missing ones.
 **Business rule (step 3b):** Discount and Free Card approvals are never auto-delivered — staff send them with "Send to Delivery". The report lists them separately as `awaitingManual` (kind `discount` / `free-card`), not as `missing`, and `createMissingDelivery` refuses them (`manual-only:<kind>`).
 
 **Step 3c:** the usual cause of `missing` is a tute set in Content Hub after the payment was approved. With `DELIVERY_AUTOFIX=true` the daily job creates only those approved within `DELIVERY_AUTOFIX_DAYS` (default 7); older ones are left to the delivery team.
+
+**Step 3d:** reconcile and create skip tutes the student already has in any live delivery (any payment/group), so a late fix never sends a tute twice (`already-delivered-elsewhere`).
 Orphans are only reported — staff decide.
 
 ## Running tests
