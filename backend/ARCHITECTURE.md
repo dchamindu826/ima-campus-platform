@@ -297,6 +297,12 @@ PAYMENT_PROCESSING = pending / underpaid / expired post-pay; staff-set `PAID` is
 - `syncLeadEnrollment` logs `[crm:shadow] ... would skip N lead(s) matched only by last 7 digits`.
   `CRM_STRICT_PHONE=true` makes it skip them.
 
+**Primary lead (5a):** one person is enrolled once per batch, like the stats pages: if the person
+already has an ENROLLED lead in that batch, other leads are `secondary` (counted, not changed);
+otherwise only the newest lead is marked. `intention-update` fixes MONTHLY/FULL/INSTALLMENT on an
+already-enrolled lead. `enrolled-by-lookalike-number` = ENROLLED only because a different number
+with the same last 7 digits paid (first report: 20) — staff check these.
+
 Left for **5b** (after the report numbers are reviewed): switch the stats/getLeads pages to the
 same rule and remove their read-time DB writes.
 

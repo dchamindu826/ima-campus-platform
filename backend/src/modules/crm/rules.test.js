@@ -46,6 +46,7 @@ test('changes: fix with evidence, report enrolled-without-payment, never touch m
     const enrolled = { status: 'ENROLLED', intention: 'FULL', evidence: true, paymentId: 7 };
     assert.equal(R.leadChange({ enrollmentStatus: 'NON_ENROLLED' }, enrolled).kind, 'should-be-enrolled');
     assert.equal(R.leadChange({ enrollmentStatus: 'ENROLLED', paymentIntention: 'FULL' }, enrolled), null);
+    assert.equal(R.leadChange({ enrollmentStatus: 'ENROLLED', paymentIntention: 'MONTHLY' }, enrolled).kind, 'intention-update');
     assert.equal(R.leadChange({ enrollmentStatus: 'ENROLLED' }, { status: 'NON_ENROLLED', evidence: false }).kind, 'enrolled-without-payment');
     assert.equal(R.leadChange({ enrollmentStatus: 'NON_ENROLLED' }, { status: 'NON_ENROLLED', evidence: false }), null);
     assert.equal(R.leadChange({ enrollmentStatus: 'ENROLLED' }, { status: 'NON_ENROLLED', evidence: true }).kind, 'should-not-be-enrolled');

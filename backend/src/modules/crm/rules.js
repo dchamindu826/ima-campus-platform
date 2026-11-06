@@ -73,6 +73,9 @@ function leadChange(lead, derived) {
         return current === 'ENROLLED' ? { kind: 'enrolled-without-payment', from: current, to: null } : null;
     }
     if (current === derived.status && (!derived.intention || lead.paymentIntention === derived.intention)) return null;
+    if (current === derived.status) {
+        return { kind: 'intention-update', from: current, to: derived.status, intention: derived.intention, paymentId: derived.paymentId };
+    }
     const kind = derived.status === 'ENROLLED' ? 'should-be-enrolled'
         : derived.status === 'PAYMENT_PROCESSING' ? 'should-be-processing'
             : 'should-not-be-enrolled';
