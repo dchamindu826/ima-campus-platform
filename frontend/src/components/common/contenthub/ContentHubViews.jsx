@@ -1,5 +1,5 @@
 import React from 'react';
-import { FolderOpen, Folder, FolderPlus, Layers, BookOpen, Edit3, Trash2, ChevronRight, ChevronDown, GripVertical, CheckCircle, Video, MonitorPlay, FileText, FileSignature, Power, UserPlus, Plus, Users, User, Eye, EyeOff, Calendar, TrendingUp, Copy, Link, Building2, Sparkles, Trophy, Clock, Award, Unlink, Share2 } from 'lucide-react';
+import { ArrowUp, ArrowDown, FolderOpen, Folder, FolderPlus, Layers, BookOpen, Edit3, Trash2, ChevronRight, ChevronDown, GripVertical, CheckCircle, Video, MonitorPlay, FileText, FileSignature, Power, UserPlus, Plus, Users, User, Eye, EyeOff, Calendar, TrendingUp, Copy, Link, Building2, Sparkles, Trophy, Clock, Award, Unlink, Share2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../../../api/axios';
 import UpgradePricingConfig from '../../admin/UpgradePricingConfig';
@@ -22,6 +22,29 @@ export default function ContentHubViews({ state, actions }) {
         toggleFolder, setBatchTab, setContentTab, isMatchedType, getFolderId, setDiscountRules, setSelectedGroupPrices, setMassAssignSubjects,
         openCreateSubFolderModal, setSelectedFolderParentId, openPaperBuilder, setHubBatchConfigs, setHubActiveBatchTab
     } = actions;
+
+    // ⬆ ⬇ folder order: saves the new top-to-bottom order for every copy of each folder
+    // (all subjects / recordings + documents), so staff and students see the same order.
+    const moveFolder = async (list, index, dir) => {
+        const target = index + dir;
+        if (target < 0 || target >= list.length) return;
+        const next = [...list];
+        [next[index], next[target]] = [next[target], next[index]];
+        try {
+            await api.post('/v2/content/folders/reorder', { folders: next.map(f => (f.ids && f.ids.length ? f.ids : [f.id]).map(Number)) });
+            toast.success('Folder order saved');
+            fetchContents(activeSubject, activeBatch);
+        } catch (err) {
+            toast.error(err?.response?.data?.error || 'Could not save the order');
+        }
+    };
+    const byOrder = (a, b) => (Number(a.itemOrder) || 1) - (Number(b.itemOrder) || 1) || Number(a.id) - Number(b.id);
+    const orderButtons = (list, index, small) => (
+        <>
+            <button title="Move up" disabled={index === 0} onClick={(e) => { e.stopPropagation(); moveFolder(list, index, -1); }} className={`text-slate-300 hover:bg-white/10 bg-white/5 ${small ? 'p-1.5 rounded-lg' : 'p-2 sm:p-2.5 rounded-xl'} transition-colors outline-none disabled:opacity-30 disabled:cursor-not-allowed`}><ArrowUp size={small ? 14 : 16} /></button>
+            <button title="Move down" disabled={index === list.length - 1} onClick={(e) => { e.stopPropagation(); moveFolder(list, index, 1); }} className={`text-slate-300 hover:bg-white/10 bg-white/5 ${small ? 'p-1.5 rounded-lg' : 'p-2 sm:p-2.5 rounded-xl'} transition-colors outline-none disabled:opacity-30 disabled:cursor-not-allowed`}><ArrowDown size={small ? 14 : 16} /></button>
+        </>
+    );
 
     const getBaseUrl = () => {
         if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
@@ -866,7 +889,7 @@ return (
                                 });
                             }
                         });
-                        const organizedRootFolders = Array.from(mergedRootFoldersMap.values());
+                        const organizedRootFolders = Array.from(mergedRootFoldersMap.values()).sort(byOrder);
 
                         if (organizedRootFolders.length === 0) return null;
 
@@ -874,7 +897,7 @@ return (
                             <div className="space-y-4 sm:space-y-6">
                                 <h4 className="text-xs font-extrabold text-gray-400 uppercase tracking-widest pl-1 sm:pl-2 drop-shadow-sm">Organized Folders</h4>
 
-                                {organizedRootFolders.map((folder) => {
+                                {organizedRootFolders.map((folder, folderIndex) => {
                                     const rawSubFolders = (lessonGroups || []).filter(g => isMatchedType(g) && g.parentId && folder.ids.includes(String(g.parentId)));
                                     const mergedSubMap = new Map();
                                     rawSubFolders.forEach(sf => {
@@ -889,7 +912,7 @@ return (
                                             });
                                         }
                                     });
-                                    const subFolders = Array.from(mergedSubMap.values());
+                                    const subFolders = Array.from(mergedSubMap.values()).sort(byOrder);
 
                                     const isItemMatch = (c, fObj) => {
                                         const cFolderId = c.content_group_id ?? c.contentGroupId ?? c.folder_id;
@@ -935,6 +958,7 @@ return (
                                                                 setShowContentModal(true);
                                                                 setEditMode(false);
                                                             }} className="bg-green-600/90 hover:bg-green-500 text-white px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl text-[10px] sm:text-xs uppercase tracking-wider font-extrabold flex items-center gap-1.5 transition-colors shadow-[0_4px_15px_rgba(22,163,74,0.4)] border border-transparent outline-none"><Plus size={14} /> <span className="hidden xs:inline">Add Content</span></button>
+                                                            {orderButtons(organizedRootFolders, folderIndex, false)}
                                                             <button onClick={(e) => { e.stopPropagation(); setEditData(folder); setSelectedFolderParentId(folder.parentId ? String(folder.parentId) : ''); setEditMode(true); setShowLessonGroupModal(true); }} className="text-blue-400 hover:bg-blue-500 hover:text-white bg-blue-500/10 border border-transparent hover:border-blue-500/50 p-2 sm:p-2.5 rounded-xl transition-colors outline-none shadow-sm"><Edit3 size={16} /></button>
                                                             <button onClick={(e) => { e.stopPropagation(); deleteItem('/admin/content-group/delete', { contentGroupId: folder.id }, "Folder Deleted"); }} className="text-red-400 hover:bg-red-500 hover:text-white bg-red-500/10 border border-transparent hover:border-red-500/50 p-2 sm:p-2.5 rounded-xl transition-colors outline-none shadow-sm"><Trash2 size={16} /></button>
                                                         </>
@@ -960,7 +984,7 @@ return (
                                                             </div>
 
                                                             <div className="space-y-3 pl-2 sm:pl-4 border-l-2 border-indigo-500/30">
-                                                                {subFolders.map((subFolder) => {
+                                                                {subFolders.map((subFolder, subIndex) => {
                                                                     const subContents = subjectContents.filter(c => isMatchedType(c) && isItemMatch(c, subFolder));
 
                                                                     return (
@@ -990,6 +1014,7 @@ return (
                                                                                                 setShowContentModal(true);
                                                                                                 setEditMode(false);
                                                                                             }} className="bg-green-600/90 hover:bg-green-500 text-white px-2.5 py-1.5 rounded-lg text-[10px] uppercase tracking-wider font-extrabold flex items-center gap-1 transition-colors shadow-sm border border-transparent outline-none"><Plus size={12} /> Add Content</button>
+                                                                                            {orderButtons(subFolders, subIndex, true)}
                                                                                             <button onClick={(e) => { e.stopPropagation(); setEditData(subFolder); setSelectedFolderParentId(subFolder.parentId ? String(subFolder.parentId) : ''); setEditMode(true); setShowLessonGroupModal(true); }} className="text-blue-400 hover:bg-blue-500 hover:text-white bg-blue-500/10 p-1.5 rounded-lg transition-colors outline-none shadow-sm"><Edit3 size={14} /></button>
                                                                                             <button onClick={(e) => { e.stopPropagation(); deleteItem('/admin/content-group/delete', { contentGroupId: subFolder.id }, "Sub-folder Deleted"); }} className="text-red-400 hover:bg-red-500 hover:text-white bg-red-500/10 p-1.5 rounded-lg transition-colors outline-none shadow-sm"><Trash2 size={14} /></button>
                                                                                         </>

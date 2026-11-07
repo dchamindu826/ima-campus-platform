@@ -40,4 +40,35 @@ async function findMisfiledContents({ days = 120, batchId } = {}) {
     return { scanned: rows.length, truncated: rows.length === MAX_SCAN, uncategorized, misfiled };
 }
 
-module.exports = { findMisfiledContents };
+/**
+ * Save the folder order shown in the Content Hub.
+ * A folder made "for all subjects" / "recordings + documents" is really several copies
+ * (one per subject / type) shown as one. Editing "Display Order" changed only ONE copy, so
+ * the order jumped around (staff and students). Here every copy gets the same order.
+ * @param {Array<Array<number>>} orderedFolders  one entry per visible folder, top to bottom;
+ *        each entry = the ids the Content Hub shows as that folder
+ * @returns {Promise<number>} folders updated
+ */
+async function reorderFolders(orderedFolders) {
+    const lists = (orderedFolders || []).map((ids) => (Array.isArray(ids) ? ids : [ids]).map(Number).filter(Boolean)).filter((l) => l.length);
+    if (lists.length === 0) return 0;
+    const shown = await db().contentGroup.findMany({ where: { id: { in: lists.flat() } }, select: { id: true, batchId: true, classType: true, parentId: true, title: true } });
+    const byId = new Map(shown.map((f) => [f.id, f]));
+    const batchIds = [...new Set(shown.map((f) => f.batchId))];
+    const all = await db().contentGroup.findMany({ where: { batchId: { in: batchIds } }, select: { id: true, batchId: true, classType: true, parentId: true, title: true } });
+    const allById = new Map(all.map((f) => [f.id, f]));
+    const parentKey = (f) => (f.parentId ? rules.normalizeFolderTitle((allById.get(f.parentId) || {}).title) : '');
+    const key = (f) => `${f.batchId}|${f.classType}|${f.parentId ? 'sub:' + parentKey(f) : 'root'}|${rules.normalizeFolderTitle(f.title)}`;
+
+    let updated = 0;
+    for (let i = 0; i < lists.length; i++) {
+        const keys = new Set(lists[i].map((id) => byId.get(id)).filter(Boolean).map(key));
+        const ids = all.filter((f) => keys.has(key(f))).map((f) => f.id);
+        if (ids.length === 0) continue;
+        const r = await db().contentGroup.updateMany({ where: { id: { in: ids } }, data: { itemOrder: (i + 1) * 10 } });
+        updated += r.count;
+    }
+    return updated;
+}
+
+module.exports = { findMisfiledContents, reorderFolders };

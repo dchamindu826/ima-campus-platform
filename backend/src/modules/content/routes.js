@@ -14,4 +14,13 @@ router.get('/misfiled', async (req, res) => {
     res.json(await service.findMisfiledContents({ days, batchId }));
 });
 
+// Content Hub ⬆ ⬇ buttons. Body: { folders: [[ids of folder 1], [ids of folder 2], ...] } top to bottom.
+router.post('/folders/reorder', async (req, res) => {
+    const folders = req.body && req.body.folders;
+    if (!Array.isArray(folders) || folders.length === 0) return res.status(400).json({ error: 'folders required' });
+    if (folders.length > 300) return res.status(400).json({ error: 'too many folders' });
+    const updated = await service.reorderFolders(folders);
+    res.json({ updated });
+});
+
 module.exports = router;
