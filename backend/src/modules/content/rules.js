@@ -62,4 +62,31 @@ function misfileReason(content, folder) {
     return null;
 }
 
-module.exports = { contentDedupeKey, dedupeContents, contentTypeNumber, batchList, misfileReason };
+/**
+ * A sub-folder belongs to the subject it was created in (courseCode) or to every subject
+ * (no courseCode). Root folders shared by all subjects ("May", "November") used to show the
+ * sub-folders of EVERY subject — a Geo sub-folder appeared under Media too.
+ * @param {{ courseCode?: string|null }} folder
+ * @param {string[]} subjectCodes  all codes of the subject being viewed (e.g. "22", "SUB_315")
+ */
+function subfolderBelongsToSubject(folder, subjectCodes) {
+    const code = folder && folder.courseCode;
+    if (code === null || code === undefined || String(code).trim() === '' || code === 'NULL') return true;
+    const codes = (subjectCodes || []).filter(Boolean).map(String);
+    if (codes.length === 0) return true; // no subject context: keep old behaviour
+    const variants = new Set(codes.flatMap((c) => [c, c.startsWith('SUB_') ? c.slice(4) : `SUB_${c}`]));
+    return variants.has(String(code));
+}
+
+/** Same rule the Content Hub uses to show copies of a folder as one ("May Month" = "may"). */
+function normalizeFolderTitle(title) {
+    if (!title) return '';
+    return String(title).toLowerCase()
+        .replace(/octomber/g, 'october')
+        .replace(/septeber|septemeber|septembar/g, 'september')
+        .replace(/[\s_-]+/g, ' ')
+        .replace(/\b(month|batch|මාසය|මාස|පාඩම|පාඩම්)\b/gi, '')
+        .trim();
+}
+
+module.exports = { contentDedupeKey, dedupeContents, contentTypeNumber, batchList, misfileReason, subfolderBelongsToSubject, normalizeFolderTitle };

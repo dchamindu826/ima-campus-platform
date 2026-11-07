@@ -44,3 +44,12 @@ test('misfiled: folder of another batch, or wrong folder type', () => {
     assert.equal(R.misfileReason({ batchId: 5, contentType: 'document' }, folder), null, 'documents in recording folders allowed');
     assert.equal(R.misfileReason({ batchId: 5, contentType: 'recording' }, null), null);
 });
+
+test('report: sub-folder made in Geo shows only in Geo (or everywhere if made for all subjects)', () => {
+    const R = require('./rules');
+    assert.equal(R.subfolderBelongsToSubject({ courseCode: 'GEO' }, ['GEO']), true);
+    assert.equal(R.subfolderBelongsToSubject({ courseCode: 'GEO' }, ['MEDIA', 'SUB_12']), false);
+    assert.equal(R.subfolderBelongsToSubject({ courseCode: 'SUB_315' }, ['315']), true, 'code variants');
+    assert.equal(R.subfolderBelongsToSubject({ courseCode: null }, ['MEDIA']), true, 'all-subjects sub-folder');
+    assert.equal(R.subfolderBelongsToSubject({ courseCode: 'GEO' }, []), true, 'no subject context: unchanged');
+});

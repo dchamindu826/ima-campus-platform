@@ -506,7 +506,9 @@ exports.getCourseModules = async (req, res) => {
             const subGroups = await prisma.contentGroup.findMany({
                 where: { parentId: { in: rootIds }, classType: targetClassType }
             });
-            subGroups.forEach(sg => allGroupsMap.set(sg.id, sg));
+            // Only this subject's sub-folders (or ones made for all subjects).
+            const { subfolderBelongsToSubject } = require('../../src/modules/content/rules');
+            subGroups.filter(sg => subfolderBelongsToSubject(sg, [courseCodeForGroups, requestedCourse?.code])).forEach(sg => allGroupsMap.set(sg.id, sg));
         }
 
         const allGroups = Array.from(allGroupsMap.values());
