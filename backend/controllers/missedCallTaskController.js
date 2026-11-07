@@ -363,11 +363,15 @@ exports.distributeMissedCallTasks = async (req, res) => {
             });
             updatedTasks.push(updated);
 
-            // Sync assigned coordinator to the lead in CRM if lead exists
+            // Give the lead to the call assignee ONLY if nobody owns the chat yet.
+            // Before: every missed-call distribution overwrote lead.assignedTo, so chats jumped
+            // away from the coordinator who was handling them (one coordinator owns chat + calls).
             if (updated.existingLeadId) {
-                prisma.lead.update({
-                    where: { id: updated.existingLeadId },
-                    data: { assignedTo: updated.taskAssigneeId }
+                prisma.lead.updateMany({
+                    where: { id: updated.existingLeadId, assignedTo: null },
+                    data: { assignedTo: updated.taskAssigneeId, assignedAt: now }
+                }).then((r) => {
+                    if (r.count === 0) console.log(`[missed-call] task ${updated.id}: lead ${updated.existingLeadId} already has a coordinator — chat owner kept`);
                 }).catch(() => {});
             }
         }
