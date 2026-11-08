@@ -15,6 +15,16 @@ const studentIdOf = (req) => req.user?.id || req.user?.userId;
  * Decide whether to continue. Returns true if the request may proceed.
  * On deny in enforce mode, sends 403 itself.
  */
+// What the student sees when a class is locked (web shows it; Sinhala first).
+const DENY_MESSAGES = {
+    'payment-pending-approval': 'ඔබගේ ගෙවීම තවම අනුමත කර නැත. අනුමත වූ විගස පන්තිය විවෘත වේ. / Your payment is waiting for approval.',
+    'installment-overdue': 'ඊළඟ වාරිකය ගෙවිය යුතුයි. ගෙවූ පසු පන්තිය නැවත විවෘත වේ. / Your next installment is due.',
+    'post-pay-expired': 'Post-pay කාලය අවසන්. කරුණාකර ගෙවීම සම්පූර්ණ කරන්න. / Your post-pay period has ended. Please complete the payment.',
+    'no-payment-for-batch': 'මෙම පන්තිය සඳහා ඔබ ලියාපදිංචි වී නැත. / You are not enrolled in this class.',
+    'subject-or-month-not-paid': 'මෙම මාසයට / විෂයට ගෙවීමක් නැත. Enrollment tab එකෙන් ගෙවන්න. / You have not paid for this subject or month.',
+};
+const denyMessage = (reason) => (DENY_MESSAGES[reason] || 'You do not have access to this class.') + ' ප්‍රශ්නයක් ඇත්නම් ඔබගේ coordinator අමතන්න.';
+
 async function check(req, res, what, id, decide) {
     // Staff (coordinators previewing a class) are not limited by student payments.
     const role = normRole(req.user?.role);
@@ -38,7 +48,7 @@ async function check(req, res, what, id, decide) {
     res.status(403).json({
         error: 'NOT_ENROLLED',
         reason: result.reason,
-        message: 'You do not have access to this class. Please contact your coordinator.',
+        message: denyMessage(result.reason),
     });
     return false;
 }
@@ -72,4 +82,4 @@ const guardContentLink = (getId) => async (req, res, next) => {
     if (await check(req, res, 'content', id, service.canAccessContent)) next();
 };
 
-module.exports = { guardCourseParam, guardContentParam, guardContentLink, enforcing };
+module.exports = { guardCourseParam, guardContentParam, guardContentLink, enforcing, denyMessage };
