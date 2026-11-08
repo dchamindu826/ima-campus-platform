@@ -55,6 +55,17 @@ test('monthly payment covers duplicate DB rows of the same subject in the same m
     assert.equal(can(C.ictOctDup, p).allowed, true);
 });
 
+test('report (shadow logs): October paid with a course row made in September still opens October', () => {
+    // Payment for the OCTOBER group, but the subject id is the September ICT row (course re-used across months).
+    const p = [pay({ groupId: G.OCT, subjects: '[1]' })];
+    assert.equal(can(C.ictOct, p).allowed, true);
+    assert.equal(can(C.ictOct, p).reason, 'monthly:same-subject-this-month');
+    assert.equal(can(C.etOct, p).allowed, false, 'other subject still locked');
+    assert.equal(can(C.ictSep, p).allowed, false, 'September content still needs a September payment');
+    assert.equal(can(C.ictPaperOct, p).allowed, false, 'paper class not opened by theory payment');
+    assert.equal(can(C.ictOtherBatch, p).allowed, false, 'other batch never');
+});
+
 test('payment with no subject list covers the whole group only', () => {
     const p = [pay({ groupId: G.OCT, subjects: '[]' })];
     assert.equal(can(C.etOct, p).allowed, true);
