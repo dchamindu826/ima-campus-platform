@@ -1,5 +1,6 @@
 import React from 'react';
 import { ArrowUp, ArrowDown, FolderOpen, Folder, FolderPlus, Layers, BookOpen, Edit3, Trash2, ChevronRight, ChevronDown, GripVertical, CheckCircle, Video, MonitorPlay, FileText, FileSignature, Power, UserPlus, Plus, Users, User, Eye, EyeOff, Calendar, TrendingUp, Copy, Link, Building2, Sparkles, Trophy, Clock, Award, Unlink, Share2 } from 'lucide-react';
+import { liveKey } from '../../../utils/liveKey';
 import toast from 'react-hot-toast';
 import api from '../../../api/axios';
 import UpgradePricingConfig from '../../admin/UpgradePricingConfig';
@@ -362,8 +363,11 @@ const renderContentCard = (content) => {
 
                     {(content.contentType === 'live' || String(content.contentType) === '1') && (
                         <button
-                            onClick={() => copyToClipboard(`${window.location.origin}/live/${content.id}`)}
-                            title="Link for students: login → payment check → Join Now (Zoom link stays hidden)"
+                            onClick={() => {
+                                const k = liveKey(content.link, content.meetingId);
+                                copyToClipboard(k ? `${window.location.origin}/live/z/${k}` : `${window.location.origin}/live/${content.id}`);
+                            }}
+                            title="Link for students: login → payment check → Join Now. Same Zoom link in other batches = same student link. Zoom link stays hidden."
                             className="w-full bg-red-500/10 border border-red-500/30 text-red-300 hover:bg-red-500 hover:text-white py-2 sm:py-2.5 rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-wider transition-all shadow-sm outline-none flex items-center justify-center gap-1 order-first"
                         >
                             <Link size={12} /> Copy Student Join Link

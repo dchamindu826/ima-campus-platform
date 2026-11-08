@@ -1,4 +1,5 @@
-// /live/:id — the link coordinators share for ONE live class.
+// /live/z/:key — the link coordinators share for one Zoom meeting (same link for every batch
+// that uses that Zoom link). /live/:id — older per-class link.
 // Not logged in → login first, then back here. Paid → Join Now. Not paid → the reason.
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
@@ -10,18 +11,20 @@ export const AFTER_LOGIN_KEY = 'ima-after-login';
 const hasToken = () => !!(localStorage.getItem('token') || localStorage.getItem('userToken') || localStorage.getItem('admin_token'));
 
 export default function LiveJoin() {
-    const { id } = useParams();
+    const { id, key } = useParams();
+    const here = key ? `/live/z/${key}` : `/live/${id}`;
+    const apiPath = key ? `/v2/live/z/${key}` : `/v2/live/${id}`;
     const navigate = useNavigate();
     const [state, setState] = useState({ loading: true });
 
     useEffect(() => {
         const goLogin = () => {
-            try { sessionStorage.setItem(AFTER_LOGIN_KEY, `/live/${id}`); } catch (e) {}
+            try { sessionStorage.setItem(AFTER_LOGIN_KEY, here); } catch (e) {}
             navigate('/login', { replace: true });
         };
         if (!hasToken()) return goLogin();
-        try { sessionStorage.setItem(AFTER_LOGIN_KEY, `/live/${id}`); } catch (e) {}
-        api.get(`/v2/live/${id}`)
+        try { sessionStorage.setItem(AFTER_LOGIN_KEY, here); } catch (e) {}
+        api.get(apiPath)
             .then((r) => {
                 try { sessionStorage.removeItem(AFTER_LOGIN_KEY); } catch (e) {}
                 setState({ loading: false, live: r.data });
@@ -31,7 +34,7 @@ export default function LiveJoin() {
                 if (status === 401) return goLogin();
                 setState({ loading: false, error: err.response?.data?.message || 'Could not load this live class. Please try again.' });
             });
-    }, [id, navigate]);
+    }, [here, apiPath, navigate]);
 
     const shell = (children) => (
         <div className="min-h-screen bg-[#0a0f1c] flex items-center justify-center p-4 font-sans">

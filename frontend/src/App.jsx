@@ -224,7 +224,7 @@ export default function App() {
   const afterLoginPath = () => {
     try {
       const p = sessionStorage.getItem('ima-after-login');
-      return p && /^\/live\/\d+$/.test(p) ? p : null;
+      return p && /^\/live\/(\d+|z\/[0-9a-z]+)$/.test(p) ? p : null;
     } catch (e) { return null; }
   };
 
@@ -283,6 +283,7 @@ export default function App() {
 
             {/* Student link for one live class (login → payment check → Join Now) */}
             <Route path="/live/:id" element={<LiveJoin />} />
+            <Route path="/live/z/:key" element={<LiveJoin />} />
 
             <Route
               path="/login"

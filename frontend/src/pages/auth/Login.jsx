@@ -35,7 +35,7 @@ export default function Login({ setLoggedInUser }) {
         // Came from a live-class link (/live/<id>)? Go back there.
         let afterLogin = null;
         try { afterLogin = sessionStorage.getItem('ima-after-login'); } catch (e) {}  // the live page clears it once it opens
-        if (afterLogin && /^\/live\/\d+$/.test(afterLogin)) {
+        if (afterLogin && /^\/live\/(\d+|z\/[0-9a-z]+)$/.test(afterLogin)) {
             navigate(afterLogin);
             return;
         }
