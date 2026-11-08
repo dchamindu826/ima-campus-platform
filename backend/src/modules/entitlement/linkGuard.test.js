@@ -28,3 +28,10 @@ test('report: live/zoom links opened without login — shadow logs, enforce bloc
     assert.equal((await run({ query: { id: '55', token: tok(9) } })).next, true, 'staff');
     delete process.env.ENTITLEMENT_ENFORCE;
 });
+
+test('locked class message says why (pending / not paid), Sinhala first', () => {
+    const { denyMessage } = require('./guard');
+    assert.match(denyMessage('payment-pending-approval'), /අනුමත/);
+    assert.match(denyMessage('subject-or-month-not-paid'), /not paid/);
+    assert.match(denyMessage('weird'), /coordinator/);
+});
