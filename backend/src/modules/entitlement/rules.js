@@ -164,12 +164,23 @@ function sameSubjectInBatch(a, b) {
 }
 
 /**
- * Courses of a monthly payment that really belong to the paid month: the ones whose own
- * group is the payment's group, if there are any; otherwise all (re-used rows only).
+ * Courses a monthly payment really paid for.
+ * Course rows are re-used across months, AND the mobile app sometimes sends the student's
+ * OLD months' course ids with a new payment. When a payment mixes courses of its own group
+ * with courses of other groups, the AMOUNT decides:
+ *   6811 paid 8000 = only the November-group courses (Media+Sinhala+Geo) → own only
+ *   4093 pays the same re-used rows every month + one new row → amount = all → all count
  */
 function thisMonthCourses(payment, paidCourses) {
     const own = paidCourses.filter((pc) => pc.groupId === payment.groupId);
-    return own.length ? own : paidCourses;
+    if (own.length === 0 || own.length === paidCourses.length) return paidCourses;
+    const amount = Number(payment.amount);
+    if (!amount && amount !== 0) return own;
+    const { coursePrice, dedupeByName } = require('../payments/pricing');
+    const total = (list) => dedupeByName(list).reduce((sum, c) => sum + coursePrice(c, payment.groupId), 0);
+    const ownTotal = total(own);
+    const allTotal = total(paidCourses);
+    return Math.abs(amount - allTotal) < Math.abs(amount - ownTotal) ? paidCourses : own;
 }
 
 /**

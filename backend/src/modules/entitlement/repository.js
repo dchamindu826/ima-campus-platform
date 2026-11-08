@@ -3,7 +3,7 @@
 const prisma = require('../../core/db');
 
 const COURSE_SELECT = {
-    id: true, name: true, code: true, groupId: true, courseType: true,
+    id: true, name: true, code: true, groupId: true, courseType: true, price: true, groupPrices: true,
     group: { select: { batchId: true, classType: true } },
 };
 
@@ -13,7 +13,7 @@ function findStudentPayments(studentId) {
         where: { studentId: Number(studentId) },
         select: {
             id: true, payment_type: true, status: true, valid_until: true, due_date: true,
-            installment_no: true, batchId: true, groupId: true, subjects: true,
+            installment_no: true, batchId: true, groupId: true, subjects: true, amount: true,
             created_at: true, updatedAt: true,
         },
     });

@@ -73,6 +73,21 @@ test('report (pricing shadow): app adds OLD months ids — they do not open othe
     assert.equal(can(C.ictOct, p).allowed, false, 'September ICT id does not open October ICT');
 });
 
+test('report (replay): same re-used rows every month + one new row — amount decides, regular student not blocked', () => {
+    const c = (id, name, groupId, price) => ({ ...course(id, name, groupId), price });
+    const local = new Map([
+        [31, c(31, 'Economics', G.SEP, 2500)], [32, c(32, 'Accounting', G.SEP, 2500)],
+        [33, c(33, 'Business Studies', G.OCT, 2500)],
+        [34, c(34, 'Economics', G.OCT, 2500)], [35, c(35, 'Accounting', G.OCT, 2500)],
+    ]);
+    const canL = (co, p) => R.explainCourseAccess(co, p, local, new Set(), NOW);
+    // paid all three for October (7500): two re-used September rows + one October row
+    assert.equal(canL(local.get(34), [pay({ groupId: G.OCT, subjects: '[31,32,33]', amount: 7500 })]).allowed, true);
+    // paid only the October row (2500) — the app also sent the old rows → Economics stays locked
+    assert.equal(canL(local.get(34), [pay({ groupId: G.OCT, subjects: '[31,32,33]', amount: 2500 })]).allowed, false);
+    assert.equal(canL(local.get(33), [pay({ groupId: G.OCT, subjects: '[31,32,33]', amount: 2500 })]).allowed, true);
+});
+
 test('payment with no subject list covers the whole group only', () => {
     const p = [pay({ groupId: G.OCT, subjects: '[]' })];
     assert.equal(can(C.etOct, p).allowed, true);
