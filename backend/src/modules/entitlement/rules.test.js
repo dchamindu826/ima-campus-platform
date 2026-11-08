@@ -66,6 +66,13 @@ test('report (shadow logs): October paid with a course row made in September sti
     assert.equal(can(C.ictOtherBatch, p).allowed, false, 'other batch never');
 });
 
+test('report (pricing shadow): app adds OLD months ids — they do not open other subjects this month', () => {
+    // October payment for ET only (course 3, own group OCT); the app also sent the September ICT row (1).
+    const p = [pay({ groupId: G.OCT, subjects: '[3,1]' })];
+    assert.equal(can(C.etOct, p).allowed, true);
+    assert.equal(can(C.ictOct, p).allowed, false, 'September ICT id does not open October ICT');
+});
+
 test('payment with no subject list covers the whole group only', () => {
     const p = [pay({ groupId: G.OCT, subjects: '[]' })];
     assert.equal(can(C.etOct, p).allowed, true);

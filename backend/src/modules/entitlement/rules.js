@@ -164,6 +164,15 @@ function sameSubjectInBatch(a, b) {
 }
 
 /**
+ * Courses of a monthly payment that really belong to the paid month: the ones whose own
+ * group is the payment's group, if there are any; otherwise all (re-used rows only).
+ */
+function thisMonthCourses(payment, paidCourses) {
+    const own = paidCourses.filter((pc) => pc.groupId === payment.groupId);
+    return own.length ? own : paidCourses;
+}
+
+/**
  * Does one payment cover this course? Returns a reason string, or null.
  *
  * @param {object} payment
@@ -187,7 +196,10 @@ function paymentCoversCourse(payment, course, paidCourseById) {
         // The payment IS for this month (same group). Course rows are re-used across months
         // (course 545 made in August is priced in the September/October groups), so the paid
         // course's own groupId can be another month. Same subject + same class type is enough.
-        if (paidCourses.some((pc) => batchIdOf(pc) === batchIdOf(course) && sameSubjectInBatch(pc, course))) {
+        // BUT the mobile app also sends the student's OLD months' course ids with a new payment
+        // (paid Rs.8000 = Nov Media+Sinhala+Geo, list also had Sept Political). When the payment
+        // has courses of its own month, only those count.
+        if (thisMonthCourses(payment, paidCourses).some((pc) => batchIdOf(pc) === batchIdOf(course) && sameSubjectInBatch(pc, course))) {
             return 'monthly:same-subject-this-month';
         }
         return null;
@@ -241,6 +253,7 @@ function accessibleCourseIds(candidateCourses, payments, paidCourseById, overdue
 }
 
 module.exports = {
+    thisMonthCourses,
     PAYMENT_TYPE,
     STATUS,
     parseSubjects,

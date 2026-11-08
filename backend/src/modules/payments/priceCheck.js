@@ -44,7 +44,7 @@ async function checkEnrollmentPrice({ studentId, body, userAgent }, db = require
         if (ids.length === 0 || isNaN(groupId)) return result({ supported: false, ok: true, reason: 'missing-subjects-or-group' });
 
         const [courses, group, user, plans] = await Promise.all([
-            db.course.findMany({ where: { id: { in: ids } }, select: { id: true, name: true, price: true, groupPrices: true, isDiscountExcluded: true } }),
+            db.course.findMany({ where: { id: { in: ids } }, select: { id: true, name: true, price: true, groupId: true, groupPrices: true, isDiscountExcluded: true } }),
             db.group.findUnique({ where: { id: groupId }, select: { discount_rules: true } }),
             db.user.findUnique({ where: { id: parseInt(studentId, 10) }, select: { walletBalance: true } }),
             plan === 'installment' && body.batchId
