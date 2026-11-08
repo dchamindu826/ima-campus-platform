@@ -9,6 +9,8 @@ const path = require('path');
 
 // 🔥 1. Middleware එක import කරගන්න (එක පාරක් පමණයි!)
 const { verifyToken, requireStudentDeleteAccess } = require('../middlewares/authMiddleware');
+// Payments are always for the logged-in STUDENT — a staff token (e.g. stale ghost login) is refused.
+const { requirePayingStudent } = require('../src/core/auth');
 
 // Storage Configs
 const imageStorage = multer.diskStorage({
@@ -31,16 +33,16 @@ router.get('/dashboard', verifyToken, studentController.getStudentDashboard);
 router.get('/available-enrollments', verifyToken, studentController.getAvailableEnrollments);
 router.get('/my-enrolled-subjects', verifyToken, studentController.getMyEnrolledSubjects);
 
-router.post('/payhere-hash', verifyToken, studentController.generatePayHereHash);
+router.post('/payhere-hash', verifyToken, requirePayingStudent, studentController.generatePayHereHash);
 
 // Paycorp test routes
-router.post('/paycorp-init', verifyToken, paycorpController.initPayment);
+router.post('/paycorp-init', verifyToken, requirePayingStudent, paycorpController.initPayment);
 router.post('/paycorp-complete', verifyToken, paycorpController.completePayment);
 
 // Slips upload (Web එකෙන්)
-router.post('/enroll-with-slip', verifyToken, uploadDocument.array('slipImages', 4), studentController.enrollStudent);
-router.post('/upload-due-slip', verifyToken, uploadDocument.array('slipImages', 4), studentController.uploadDueSlip);
-router.post('/pay-due-online', verifyToken, studentController.payDueOnline);
+router.post('/enroll-with-slip', verifyToken, requirePayingStudent, uploadDocument.array('slipImages', 4), studentController.enrollStudent);
+router.post('/upload-due-slip', verifyToken, requirePayingStudent, uploadDocument.array('slipImages', 4), studentController.uploadDueSlip);
+router.post('/pay-due-online', verifyToken, requirePayingStudent, studentController.payDueOnline);
 
 router.get('/classroom', verifyToken, studentController.getStudentClassroom);
 router.get('/module/:id', verifyToken, guardCourseParam('id'), studentController.getCourseModules);
