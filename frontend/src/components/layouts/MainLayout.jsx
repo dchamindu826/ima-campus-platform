@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
+import { Suspense } from 'react';
+import PageLoader from '../common/PageLoader';
 import Sidebar from './Sidebar';
 import GlobalToolsMenu from '../GlobalToolsMenu';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -142,7 +144,7 @@ export default function MainLayout({ loggedInUser, handleLogout }) {
           <div className={`flex-1 overflow-auto p-4 lg:p-6 relative custom-scrollbar ${
             isModernTheme ? (isDarkMode ? 'bg-[#0B0F19]' : 'bg-[#F8FAFC]') : ''
           }`} style={{ WebkitOverflowScrolling: 'touch' }}>
-            <Outlet />
+            <Suspense fallback={<PageLoader />}><Outlet /></Suspense>
           </div>
         </main>
       </div>

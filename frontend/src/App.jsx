@@ -1,112 +1,127 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
+import PageLoader from './components/common/PageLoader';
+
+// Pages load on demand (the old single 7 MB file made every page slow).
+// After a new deploy the old page files are gone; if someone with an old tab opens a page,
+// reload once to get the new files instead of showing an error.
+const lazy = (load) => React.lazy(() => load().catch((err) => {
+  let last = 0;
+  try { last = Number(sessionStorage.getItem('ima-chunk-reload') || 0); } catch (e) { /* storage blocked */ }
+  if (Date.now() - last > 30000) {
+    try { sessionStorage.setItem('ima-chunk-reload', String(Date.now())); } catch (e) { /* ignore */ }
+    window.location.reload();
+    return new Promise(() => {});
+  }
+  throw err;
+}));
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 
 // Layout & Pages
-import Home from './pages/web/pages/Home';
-import NewCampusLandingPage from './pages/web/pages/NewCampusLandingPage';
-import AcademyLandingPage from './pages/web/pages/AcademyLandingPage';
-import FastTrackLandingPage from './pages/web/pages/FastTrackLandingPage';
-import AboutUs from './pages/web/pages/AboutUs';
-import ContactUs from './pages/web/pages/ContactUs';
-import PrivacyPolicy from './pages/web/pages/PrivacyPolicy';
-import Terms from './pages/web/pages/Terms';
-import PusthakalayaPortal from './pages/web/pages/PusthakalayaPortal';
-import LibraryManager from './pages/admin/LibraryManager';
+const Home = lazy(() => import('./pages/web/pages/Home'));
+const NewCampusLandingPage = lazy(() => import('./pages/web/pages/NewCampusLandingPage'));
+const AcademyLandingPage = lazy(() => import('./pages/web/pages/AcademyLandingPage'));
+const FastTrackLandingPage = lazy(() => import('./pages/web/pages/FastTrackLandingPage'));
+const AboutUs = lazy(() => import('./pages/web/pages/AboutUs'));
+const ContactUs = lazy(() => import('./pages/web/pages/ContactUs'));
+const PrivacyPolicy = lazy(() => import('./pages/web/pages/PrivacyPolicy'));
+const Terms = lazy(() => import('./pages/web/pages/Terms'));
+const PusthakalayaPortal = lazy(() => import('./pages/web/pages/PusthakalayaPortal'));
+const LibraryManager = lazy(() => import('./pages/admin/LibraryManager'));
 import Login from './pages/auth/Login';
-import Register from './pages/auth/Register';
+const Register = lazy(() => import('./pages/auth/Register'));
 import GhostAuth from './pages/auth/GhostAuth';
 import MainLayout from "./components/layouts/MainLayout";
-import CallCampaignModule from './components/CoordinatorCRM/CallCampaignModule';
+const CallCampaignModule = lazy(() => import('./components/CoordinatorCRM/CallCampaignModule'));
 import WhatsAppPermissionPopup from './components/common/WhatsAppPermissionPopup';
 import { ThemeProvider } from './contexts/ThemeContext';
-import MonthlyRoster from './pages/class_coordinator/staff/MonthlyRoster';
-import AnnouncementsManager from './pages/admin/AnnouncementsManager';
-import SystemTasksAdmin from './pages/admin/SystemTasksAdmin';
+const MonthlyRoster = lazy(() => import('./pages/class_coordinator/staff/MonthlyRoster'));
+const AnnouncementsManager = lazy(() => import('./pages/admin/AnnouncementsManager'));
+const SystemTasksAdmin = lazy(() => import('./pages/admin/SystemTasksAdmin'));
 
 // Call Handling Context & UI
 import { CallProvider } from './contexts/CallContext';
 import WhatsAppCallScreen from './components/common/WhatsAppCallScreen';
-import HeadlessIvrBot from './components/common/HeadlessIvrBot';
+const HeadlessIvrBot = lazy(() => import('./components/common/HeadlessIvrBot'));
 
 // Dashboards & Modules
-import AdminDashboard from './pages/admin/AdminDashboard';
-import ExecutiveStatsHub from './pages/admin/ExecutiveStatsHub';
-import ContentHub from './components/common/contenthub/ContentHub';
-import StaffManagement from './components/common/StaffManagement';
-import PaymentManagement from './components/common/PaymentManagement';
+const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'));
+const ExecutiveStatsHub = lazy(() => import('./pages/admin/ExecutiveStatsHub'));
+const ContentHub = lazy(() => import('./components/common/contenthub/ContentHub'));
+const StaffManagement = lazy(() => import('./components/common/StaffManagement'));
+const PaymentManagement = lazy(() => import('./components/common/PaymentManagement'));
 
-import StudentDataCenter from './components/common/StudentDataCenter';
-import ClassTimetable from './components/common/ClassTimetable';
-import TaskCenter from './components/common/TaskCenter';
-import AfterSeminarDashboard from './components/AfterSeminarCRM/AfterSeminarDashboard';
+const StudentDataCenter = lazy(() => import('./components/common/StudentDataCenter'));
+const ClassTimetable = lazy(() => import('./components/common/ClassTimetable'));
+const TaskCenter = lazy(() => import('./components/common/TaskCenter'));
+const AfterSeminarDashboard = lazy(() => import('./components/AfterSeminarCRM/AfterSeminarDashboard'));
 
 // 🔥 අලුත් Campaign Dashboard Component එක Import කරන තැන 🔥
-import CallCampaignDashboard from './components/AfterSeminarCRM/CallCampaignDashboard';
-import FinanceMatrix from './components/DataExport/FinanceMatrix';
-import PaidCampaignDropMatrix from './components/DataExport/PaidCampaignDropMatrix';
-import LeadDataCenter from './components/admin/LeadDataCenter';
-import CallCampaignDataCenter from './pages/admin/CallCampaignDataCenter';
+const CallCampaignDashboard = lazy(() => import('./components/AfterSeminarCRM/CallCampaignDashboard'));
+const FinanceMatrix = lazy(() => import('./components/DataExport/FinanceMatrix'));
+const PaidCampaignDropMatrix = lazy(() => import('./components/DataExport/PaidCampaignDropMatrix'));
+const LeadDataCenter = lazy(() => import('./components/admin/LeadDataCenter'));
+const CallCampaignDataCenter = lazy(() => import('./pages/admin/CallCampaignDataCenter'));
 
-import ThemeShowcase from './components/ThemeShowcase';
+const ThemeShowcase = lazy(() => import('./components/ThemeShowcase'));
 
 // System Admin CRM Setup
-import CrmManagement from './components/admin/CrmManagement';
-import DatabaseManager from './components/admin/DatabaseManager';
-import TestInjector from './components/admin/TestInjector';
-import DataExportDashboard from './components/DataExport/DataExportDashboard';
-import ZoomAccountManager from './pages/admin/ZoomAccountManager';
-import WhatsAppCallTest from './pages/admin/WhatsAppCallTest';
-import WhatsAppBillingDashboard from './pages/admin/WhatsAppBillingDashboard';
-import CallTreeManager from './pages/admin/CallTreeManager';
-import PaperMarkerDashboard from './components/paperMarker/PaperMarkerDashboard';
-import PaperGuiderHub from './pages/admin/PaperGuiderHub';
+const CrmManagement = lazy(() => import('./components/admin/CrmManagement'));
+const DatabaseManager = lazy(() => import('./components/admin/DatabaseManager'));
+const TestInjector = lazy(() => import('./components/admin/TestInjector'));
+const DataExportDashboard = lazy(() => import('./components/DataExport/DataExportDashboard'));
+const ZoomAccountManager = lazy(() => import('./pages/admin/ZoomAccountManager'));
+const WhatsAppCallTest = lazy(() => import('./pages/admin/WhatsAppCallTest'));
+const WhatsAppBillingDashboard = lazy(() => import('./pages/admin/WhatsAppBillingDashboard'));
+const CallTreeManager = lazy(() => import('./pages/admin/CallTreeManager'));
+const PaperMarkerDashboard = lazy(() => import('./components/paperMarker/PaperMarkerDashboard'));
+const PaperGuiderHub = lazy(() => import('./pages/admin/PaperGuiderHub'));
 
 // Coordinator CRM Dashboard (For Manager & Staff)
-import CoordinatorDashboard from './pages/ClassCoordinator/CoordinatorDashboard';
-import WebInquiries from './components/CoordinatorCRM/WebInquiries';
-import LumiCallerMain from './pages/LumiCaller/LumiCallerMain';
+const CoordinatorDashboard = lazy(() => import('./pages/ClassCoordinator/CoordinatorDashboard'));
+const WebInquiries = lazy(() => import('./components/CoordinatorCRM/WebInquiries'));
+const LumiCallerMain = lazy(() => import('./pages/LumiCaller/LumiCallerMain'));
 
 // Department Dashboards (Mangers & Staff)
-import ManagerDashboard from './pages/class_coordinator/manager/ManagerDashboard';
-import LecturerTuteStockCalendar from './pages/class_coordinator/manager/LecturerTuteStockCalendar';
-import TechnicalDashboard from './pages/technical/TechnicalDashboard';
-import DeliveryDashboard from './pages/delivery/DeliveryDashboard';
-import CallCenterManagerDashboard from './pages/call_center/CallCenterManagerDashboard';
-import CallCenterAgentDashboard from './pages/call_center/CallCenterAgentDashboard';
-import PhysicalManagerDashboard from './pages/physical/PhysicalManagerDashboard';
-import StudentRegistration from './pages/PhysicalCRM/StudentRegistration';
-import ClassTeacherManagement from './pages/PhysicalCRM/ClassTeacherManagement';
-import LecturerReports from './pages/PhysicalCRM/LecturerReports';
-import EntranceGateScanner from './pages/PhysicalCRM/EntranceGateScanner';
+const ManagerDashboard = lazy(() => import('./pages/class_coordinator/manager/ManagerDashboard'));
+const LecturerTuteStockCalendar = lazy(() => import('./pages/class_coordinator/manager/LecturerTuteStockCalendar'));
+const TechnicalDashboard = lazy(() => import('./pages/technical/TechnicalDashboard'));
+const DeliveryDashboard = lazy(() => import('./pages/delivery/DeliveryDashboard'));
+const CallCenterManagerDashboard = lazy(() => import('./pages/call_center/CallCenterManagerDashboard'));
+const CallCenterAgentDashboard = lazy(() => import('./pages/call_center/CallCenterAgentDashboard'));
+const PhysicalManagerDashboard = lazy(() => import('./pages/physical/PhysicalManagerDashboard'));
+const StudentRegistration = lazy(() => import('./pages/PhysicalCRM/StudentRegistration'));
+const ClassTeacherManagement = lazy(() => import('./pages/PhysicalCRM/ClassTeacherManagement'));
+const LecturerReports = lazy(() => import('./pages/PhysicalCRM/LecturerReports'));
+const EntranceGateScanner = lazy(() => import('./pages/PhysicalCRM/EntranceGateScanner'));
 
 // Finance Dashboard Import
-import FinanceOverview from './pages/finance/FinanceOverview';
-import TeacherSalaryPortal from './pages/finance/TeacherSalaryPortal';
-import TeacherSalaryHistory from './pages/finance/TeacherSalaryHistory';
-import PettyCashPortal from './pages/finance/PettyCashPortal';
+const FinanceOverview = lazy(() => import('./pages/finance/FinanceOverview'));
+const TeacherSalaryPortal = lazy(() => import('./pages/finance/TeacherSalaryPortal'));
+const TeacherSalaryHistory = lazy(() => import('./pages/finance/TeacherSalaryHistory'));
+const PettyCashPortal = lazy(() => import('./pages/finance/PettyCashPortal'));
 
 // Student
-import StudentDashboard from './pages/student/StudentDashboard';
-import StudentDashboardV2 from './pages/student/StudentDashboardV2';
-import StudentDeliveryHub from './pages/student/components/DeliveryHub';
-import PaycorpReturn from './pages/student/components/PaycorpReturn';
+const StudentDashboard = lazy(() => import('./pages/student/StudentDashboard'));
+const StudentDashboardV2 = lazy(() => import('./pages/student/StudentDashboardV2'));
+const StudentDeliveryHub = lazy(() => import('./pages/student/components/DeliveryHub'));
+const PaycorpReturn = lazy(() => import('./pages/student/components/PaycorpReturn'));
 
 // Test
-import SecureYoutubePlayerTest from './pages/test/SecureYoutubePlayerTest';
-import VideoTestPage from './VideoTestPage';
+const SecureYoutubePlayerTest = lazy(() => import('./pages/test/SecureYoutubePlayerTest'));
+const VideoTestPage = lazy(() => import('./VideoTestPage'));
 
 // Social Media Department
-import SocialMediaManagerDashboard from './pages/social_media/SocialMediaManagerDashboard';
-import SocialMediaStaffDashboard from './pages/social_media/SocialMediaStaffDashboard';
-import SocialMediaDelegationHub from './pages/class_coordinator/SocialMediaDelegationHub';
-import VideoEditor from './pages/social_media/components/VideoEditor';
-import AIVideoGenerator from './pages/social_media/components/AIVideoGenerator';
-import AIImageGeneratorPage from './pages/admin/AIImageGeneratorPage';
-import ClaudeOpusStudio from './pages/admin/ClaudeOpusStudio';
-import AITeamHub from './pages/admin/AITeamHub';
-import SinhalaVoiceAgentTester from './pages/admin/SinhalaVoiceAgentTester';
-import YouTubeTranscriber from './pages/admin/YouTubeTranscriber';
+const SocialMediaManagerDashboard = lazy(() => import('./pages/social_media/SocialMediaManagerDashboard'));
+const SocialMediaStaffDashboard = lazy(() => import('./pages/social_media/SocialMediaStaffDashboard'));
+const SocialMediaDelegationHub = lazy(() => import('./pages/class_coordinator/SocialMediaDelegationHub'));
+const VideoEditor = lazy(() => import('./pages/social_media/components/VideoEditor'));
+const AIVideoGenerator = lazy(() => import('./pages/social_media/components/AIVideoGenerator'));
+const AIImageGeneratorPage = lazy(() => import('./pages/admin/AIImageGeneratorPage'));
+const ClaudeOpusStudio = lazy(() => import('./pages/admin/ClaudeOpusStudio'));
+const AITeamHub = lazy(() => import('./pages/admin/AITeamHub'));
+const SinhalaVoiceAgentTester = lazy(() => import('./pages/admin/SinhalaVoiceAgentTester'));
+const YouTubeTranscriber = lazy(() => import('./pages/admin/YouTubeTranscriber'));
 
 // 🔥 GHOST MODE BANNER COMPONENT 🔥
 const GhostModeBanner = () => {
@@ -228,6 +243,7 @@ export default function App() {
 
           <GhostModeBanner />
 
+          <Suspense fallback={<PageLoader />}>
           <Routes>
             {/* Public Routes */}
             <Route path="/" element={getPublicRootComponent()} />
@@ -390,6 +406,7 @@ export default function App() {
 
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>
+          </Suspense>
         </BrowserRouter>
       </CallProvider>
     </ThemeProvider>
