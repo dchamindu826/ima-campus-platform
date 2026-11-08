@@ -104,6 +104,7 @@ const PettyCashPortal = lazy(() => import('./pages/finance/PettyCashPortal'));
 // Student
 const StudentDashboard = lazy(() => import('./pages/student/StudentDashboard'));
 const StudentDashboardV2 = lazy(() => import('./pages/student/StudentDashboardV2'));
+const LiveJoin = lazy(() => import('./pages/student/LiveJoin'));
 const StudentDeliveryHub = lazy(() => import('./pages/student/components/DeliveryHub'));
 const PaycorpReturn = lazy(() => import('./pages/student/components/PaycorpReturn'));
 
@@ -219,6 +220,14 @@ export default function App() {
     return '/admin/dashboard';
   };
 
+  // Opened a live-class link (/live/<id>) before logging in → go back there after login.
+  const afterLoginPath = () => {
+    try {
+      const p = sessionStorage.getItem('ima-after-login');
+      return p && /^\/live\/\d+$/.test(p) ? p : null;
+    } catch (e) { return null; }
+  };
+
   if (!authChecked) return <div className="min-h-screen bg-[#0a0f1c]"></div>;
 
   // Subdomain detection for Meta Business Verification
@@ -272,9 +281,12 @@ export default function App() {
             {/* 🔥 NEW: Ghost Login Route 🔥 */}
             <Route path="/ghost-auth" element={<GhostAuth />} />
 
+            {/* Student link for one live class (login → payment check → Join Now) */}
+            <Route path="/live/:id" element={<LiveJoin />} />
+
             <Route
               path="/login"
-              element={loggedInUser ? <Navigate to={getDashboardLink(loggedInUser)} /> : <Login setLoggedInUser={setLoggedInUser} />}
+              element={loggedInUser ? <Navigate to={afterLoginPath() || getDashboardLink(loggedInUser)} /> : <Login setLoggedInUser={setLoggedInUser} />}
             />
 
             {/* ✅ ADMIN & STAFF ROUTES ✅ */}

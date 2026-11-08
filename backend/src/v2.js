@@ -10,6 +10,7 @@ router.use('/entitlements', require('./modules/entitlement/routes'));
 router.use('/delivery', require('./modules/delivery/routes'));
 router.use('/content', require('./modules/content/routes'));
 router.use('/crm', require('./modules/crm/routes'));
+router.use('/live', require('./modules/live/routes'));
 
 router.use(errorHandler);
 

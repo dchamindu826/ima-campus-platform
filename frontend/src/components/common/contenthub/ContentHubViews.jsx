@@ -360,6 +360,16 @@ const renderContentCard = (content) => {
                         <Copy size={12} /> COPY
                     </button>
 
+                    {(content.contentType === 'live' || String(content.contentType) === '1') && (
+                        <button
+                            onClick={() => copyToClipboard(`${window.location.origin}/live/${content.id}`)}
+                            title="Link for students: login → payment check → Join Now (Zoom link stays hidden)"
+                            className="w-full bg-red-500/10 border border-red-500/30 text-red-300 hover:bg-red-500 hover:text-white py-2 sm:py-2.5 rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-black uppercase tracking-wider transition-all shadow-sm outline-none flex items-center justify-center gap-1 order-first"
+                        >
+                            <Link size={12} /> Copy Student Join Link
+                        </button>
+                    )}
+
                     {canManageContent && (
                         <div className="flex gap-1">
                             {isSharedContent && unlinkContent && (
