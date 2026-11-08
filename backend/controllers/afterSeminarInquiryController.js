@@ -2940,12 +2940,21 @@ exports.sendBroadcast = async (req, res) => {
 exports.updateLeadBatch = async (req, res) => {
     try {
         const { leadId, batchId } = req.body;
+        // When the batch's Opening Seminar campaign is locked:
+        //   OPEN_SEMINAR leads → refused (that is what the lock is for)
+        //   NORMAL / new leads (e.g. inquiries to the after-seminar number) → allocated as a
+        //   NEW INQUIRY. Before, NORMAL was treated as Open Seminar, so new inquiries could not be
+        //   allocated to the intake at all.
+        let convertToNewInquiry = false;
         if (batchId && !isNaN(parseInt(batchId))) {
             const lead = await prisma.lead.findUnique({ where: { id: parseInt(leadId) } });
-            if (lead && (lead.inquiryType === 'OPEN_SEMINAR' || lead.inquiryType === 'NORMAL')) {
+            if (lead && (lead.inquiryType === 'OPEN_SEMINAR' || lead.inquiryType === 'NORMAL' || !lead.inquiryType)) {
                 const isLocked = await isOpenSeminarLocked(parseInt(batchId));
                 if (isLocked) {
-                    return res.status(403).json({ error: "Opening Seminar campaign for this batch is locked by Management. Cannot allocate lead to this batch." });
+                    if (lead.inquiryType === 'OPEN_SEMINAR') {
+                        return res.status(403).json({ error: "Opening Seminar campaign for this batch is locked by Management. Cannot allocate an Open Seminar lead to this batch." });
+                    }
+                    convertToNewInquiry = true;
                 }
             }
         }
@@ -2975,13 +2984,14 @@ exports.updateLeadBatch = async (req, res) => {
                 nonEnrolledReason: null,
                 r1DelayedDays: 0,
                 r2DelayedDays: 0,
-                lastAttemptAt: null
+                lastAttemptAt: null,
+                ...(convertToNewInquiry ? { inquiryType: 'NEW_INQ', newInqTimestamp: new Date() } : {})
             }
         });
         await prisma.leadRoundProgress.deleteMany({
             where: { leadId: parsedLeadId }
         }).catch(() => {});
-        res.status(200).json({ success: true, message: "Batch Updated!" });
+        res.status(200).json({ success: true, message: convertToNewInquiry ? "Batch Updated! (added as a New Inquiry — Open Seminar is locked for this batch)" : "Batch Updated!", inquiryType: convertToNewInquiry ? 'NEW_INQ' : undefined });
     } catch (error) { 
         res.status(500).json({ error: "Failed to update batch" }); 
     }
