@@ -78,21 +78,22 @@ export default function RightSidePanel({ selectedLead, activeMode, activeBusines
   const handleAssignBatch = async () => {
     if (!selectedBatchToAssign) return toast.error("Please select a batch first.");
     
-    // Check if Open Seminar campaign for selected batch is locked
-    const isLeadInOpenSem = selectedLead?.inquiryType === 'OPEN_SEMINAR' || selectedLead?.inquiryType === 'NORMAL';
+    // Open Seminar locked for this batch: Open Seminar leads are refused; new (NORMAL) leads
+    // are allocated as New Inquiries by the server.
+    const isLeadInOpenSem = selectedLead?.inquiryType === 'OPEN_SEMINAR';
     if (isLeadInOpenSem && lockedBatchesMap[selectedBatchToAssign]) {
-      return toast.error("The Opening Seminar campaign for this batch is currently locked by Management. Cannot allocate leads to it.");
+      return toast.error("The Opening Seminar campaign for this batch is currently locked by Management. Cannot allocate Open Seminar leads to it.");
     }
 
     setIsAssigningBatch(true);
     try {
       const token = localStorage.getItem('token');
-      await axios.post('/after-seminar-crm/leads/update-batch', {
+      const res = await axios.post('/after-seminar-crm/leads/update-batch', {
         leadId: selectedLead.id,
         batchId: selectedBatchToAssign
       }, { headers: { Authorization: `Bearer ${token}` } });
       
-      toast.success("Batch successfully assigned!");
+      toast.success(res?.data?.inquiryType === 'NEW_INQ' ? "Assigned as a New Inquiry (Open Seminar is locked for this batch)" : "Batch successfully assigned!");
       if (onBatchAssigned) {
         onBatchAssigned(selectedLead.id, selectedBatchToAssign);
       }
@@ -384,9 +385,10 @@ export default function RightSidePanel({ selectedLead, activeMode, activeBusines
 
             {/* 🔥 BATCH ALLOCATION SECTION 🔥 */}
             {(() => {
-              const isLeadInOpenSem = selectedLead?.inquiryType === 'OPEN_SEMINAR' || selectedLead?.inquiryType === 'NORMAL';
+              const isLeadInOpenSem = selectedLead?.inquiryType === 'OPEN_SEMINAR';
               const isSelectedBatchLocked = Boolean(selectedBatchToAssign && lockedBatchesMap[selectedBatchToAssign]);
               const shouldDisableAllocation = isLeadInOpenSem && isSelectedBatchLocked;
+              const willBecomeNewInquiry = !isLeadInOpenSem && isSelectedBatchLocked;
 
               return (
                 <div className={`p-4 rounded-xl border border-white/5 mb-4 shadow-sm transition-all ${
@@ -420,7 +422,7 @@ export default function RightSidePanel({ selectedLead, activeMode, activeBusines
                           value={b.id}
                           className={isLocked ? 'text-rose-400 bg-slate-900' : ''}
                         >
-                          {b.name} {isLocked ? '🔒 [Open Sem Locked]' : ''}
+                          {b.name} {isLocked ? (selectedLead?.inquiryType === 'OPEN_SEMINAR' ? '🔒 [Open Sem Locked]' : '(→ New Inquiry)') : ''}
                         </option>
                       );
                     })}
@@ -429,6 +431,11 @@ export default function RightSidePanel({ selectedLead, activeMode, activeBusines
                   {shouldDisableAllocation && (
                     <p className="text-[10px] text-rose-400/90 mb-2.5 leading-snug">
                       ⚠️ Opening Seminar campaign for this batch is locked. Open Seminar lead allocations are disabled.
+                    </p>
+                  )}
+                  {willBecomeNewInquiry && (
+                    <p className="text-[10px] text-amber-300/90 mb-2.5 leading-snug">
+                      ℹ️ Open Seminar is locked for this batch — this lead will be added as a <b>New Inquiry</b>.
                     </p>
                   )}
 
