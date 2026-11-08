@@ -38,6 +38,15 @@ function coursePrice(course, groupId) {
     return num(course.price);
 }
 
+/**
+ * The mobile app sends the student's old months' course ids with a new monthly payment.
+ * If some courses belong to the paid group itself, only those are charged.
+ */
+function ownGroupCourses(courses, groupId) {
+    const own = (courses || []).filter((c) => c.groupId !== undefined && parseInt(c.groupId, 10) === parseInt(groupId, 10));
+    return own.length ? own : courses;
+}
+
 /** Same name = same subject (duplicate course rows exist); keep the first. */
 function dedupeByName(courses) {
     const seen = new Set();
@@ -118,7 +127,7 @@ function expectedEnrollmentAmount({ courses, groupId, discountRules, plan, insta
         base = installmentFirstPhase(installmentPlans, courses.length);
         if (base === null) return { supported: false, reason: 'no-installment-plan' };
     } else if (plan === 'monthly' || plan === 'full') {
-        base = coursesTotal(courses, groupId, discountRules).total;
+        base = coursesTotal(ownGroupCourses(courses, groupId), groupId, discountRules).total;
     } else {
         return { supported: false, reason: `unknown-plan:${plan}` };
     }
@@ -129,4 +138,4 @@ function expectedEnrollmentAmount({ courses, groupId, discountRules, plan, insta
 /** Allow Rs.1 rounding difference. */
 const isUnderpriced = (claimed, expected) => num(claimed) + 1 < num(expected);
 
-module.exports = { coursePrice, dedupeByName, activeDiscount, coursesTotal, installmentFirstPhase, expectedEnrollmentAmount, isUnderpriced };
+module.exports = { ownGroupCourses, coursePrice, dedupeByName, activeDiscount, coursesTotal, installmentFirstPhase, expectedEnrollmentAmount, isUnderpriced };

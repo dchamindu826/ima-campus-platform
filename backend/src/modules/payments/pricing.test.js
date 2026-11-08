@@ -73,3 +73,19 @@ test('underpriced check allows Rs.1 rounding', () => {
     assert.equal(P.isUnderpriced(10, 6000), true);
     assert.equal(P.isUnderpriced(6500, 6000), false);
 });
+
+test('report (pricing shadow): app sends OLD months course ids — only the paid group courses are charged', () => {
+    const c = (id, name, price, groupId) => ({ id, name, price, groupId, groupPrices: null, isDiscountExcluded: false });
+    // student 6811: paid 8000 for November (group 338) = Media 2500 + Sinhala 2500 + Geography 3000
+    const courses = [
+        c(1340, 'Media ', 2500, 336), c(1342, 'Sinhala', 2500, 336), c(1346, 'Political', 2500, 336),
+        c(1513, 'Media ', 2500, 337), c(1514, 'Sinhala', 2500, 337), c(1517, 'Geography', 3000, 337),
+        c(1865, 'Media ', 2500, 338), c(1866, 'Sinhala', 2500, 338), c(1869, 'Geography', 3000, 338),
+    ];
+    assert.equal(P.expectedEnrollmentAmount({ courses, groupId: 338, plan: 'monthly' }).expected, 8000);
+    // student 3370: paid 5000 for Business Studies (group 436); list also had October Accounting/Economics
+    const c2 = [c(1627, 'Business Studies ', 5000, 429), c(1629, 'Accounting ', 5000, 429), c(1630, 'Economics', 5000, 429), c(1971, 'Business Studies ', 5000, 436)];
+    assert.equal(P.expectedEnrollmentAmount({ courses: c2, groupId: 436, plan: 'full' }).expected, 5000);
+    // only re-used rows (no course of the paid group): all count, as before
+    assert.equal(P.expectedEnrollmentAmount({ courses: [c(1, 'ICT', 3000, 10)], groupId: 99, plan: 'monthly' }).expected, 3000);
+});
