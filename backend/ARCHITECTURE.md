@@ -126,7 +126,13 @@ Guards start in **shadow mode**: they never block, they log:
 1. Deploy. Watch the server log for a few days.
 2. For each "would deny" line, check: is the student really unpaid? If a paid student shows up,
    the rule is wrong — fix `rules.js` + add a test.
-3. When the log only shows genuinely unpaid students, set `ENTITLEMENT_ENFORCE=true` in `.env`
+3. Re-check the logged denials with the current rule (read-only):
+   `pm2 logs ima-backend --lines 200000 --nostream | grep "would deny" > /root/shadow-deny.txt`
+   `node src/modules/entitlement/replay.js /root/shadow-deny.txt`
+   First run (Nov 2026): most denials were students who HAD paid the month, because course rows
+   are re-used across months (course 545 made in August, priced in the October group). Fixed:
+   a monthly payment for the group opens the same subject (`monthly:same-subject-this-month`).
+4. When the replay only shows genuinely unpaid students, set `ENTITLEMENT_ENFORCE=true` in `.env`
    and restart. To roll back instantly, remove it and restart.
 
 ### Content links (closed in step 4)

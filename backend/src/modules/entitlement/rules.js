@@ -184,6 +184,12 @@ function paymentCoversCourse(payment, course, paidCourseById) {
         if (paidCourses.some((pc) => pc.groupId === course.groupId && sameSubject(pc, course))) {
             return 'monthly:duplicate-course';
         }
+        // The payment IS for this month (same group). Course rows are re-used across months
+        // (course 545 made in August is priced in the September/October groups), so the paid
+        // course's own groupId can be another month. Same subject + same class type is enough.
+        if (paidCourses.some((pc) => batchIdOf(pc) === batchIdOf(course) && sameSubjectInBatch(pc, course))) {
+            return 'monthly:same-subject-this-month';
+        }
         return null;
     }
 
