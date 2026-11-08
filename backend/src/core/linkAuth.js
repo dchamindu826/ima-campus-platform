@@ -25,8 +25,12 @@ async function readUser(req) {
         const v = jwt.verify(token, process.env.JWT_SECRET);
         const id = parseInt(v.userId || v.id, 10);
         if (!id) return null;
-        const u = await db().user.findUnique({ where: { id }, select: { id: true, role: true } });
+        const u = await db().user.findUnique({ where: { id }, select: { id: true, role: true, session_id: true, department: true, businessType: true } });
         if (!u) return null;
+        // Same single-device rule as the normal login check: a student token from an older
+        // login (another phone/browser logged in since) no longer opens class links.
+        const plainStudent = String(u.role || '').trim().toUpperCase() === 'STUDENT' && !u.department && !u.businessType;
+        if (plainStudent && v.sessionId && u.session_id && u.session_id !== v.sessionId) return null;
         req.user = { ...v, id: u.id, userId: u.id, role: u.role };
         return req.user;
     } catch (e) {

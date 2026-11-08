@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const jwt = require('jsonwebtoken');
 
 process.env.JWT_SECRET = process.env.JWT_SECRET || 'test-secret';
-const users = { 7: { id: 7, role: 'student' }, 9: { id: 9, role: 'Coordinator' } };
+const users = { 7: { id: 7, role: 'student', session_id: 's-new' }, 9: { id: 9, role: 'Coordinator' } };
 globalThis.__imaPrisma = { user: { findUnique: async ({ where }) => users[where.id] || null } };
 delete require.cache[require.resolve('./db')];
 const { tokenOf, readUser, requireStaffLink } = require('./linkAuth');
@@ -30,4 +30,10 @@ test('report: call recordings were public — now staff token required', async (
     assert.equal((await run(requireStaffLink, { headers: {}, query: {} })).status, 401);
     assert.equal((await run(requireStaffLink, { headers: {}, query: { token: tok(7) } })).status, 403, 'student');
     assert.equal((await run(requireStaffLink, { headers: {}, query: { token: tok(9) } })).next, true, 'staff');
+});
+
+test('student token from an older login (other device) no longer opens links', async () => {
+    const t = (sessionId) => jwt.sign({ userId: 7, sessionId }, process.env.JWT_SECRET);
+    assert.equal(await readUser({ headers: {}, query: { token: t('s-old') } }), null);
+    assert.equal((await readUser({ headers: {}, query: { token: t('s-new') } })).id, 7);
 });

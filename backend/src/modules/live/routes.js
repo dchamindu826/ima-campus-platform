@@ -13,6 +13,8 @@ const router = express.Router();
 const LIVE_TYPES = ['live', '1'];
 const CONTENT_SELECT = { id: true, title: true, contentType: true, link: true, meetingId: true, date: true, startTime: true, endTime: true, courseId: true, batchId: true, createdAt: true };
 const RECENT_DAYS = 180;
+// Zoom link changed / class deleted → the old link finds nothing. Send them to the dashboard.
+const NOT_FOUND_MSG = 'මෙම link එක දැන් වලංගු නැත (Zoom link එක වෙනස් වී හෝ class එක ඉවත් කර ඇත). ඔබගේ dashboard එකෙන් Join වන්න. / This link is no longer valid — join from your dashboard.';
 
 async function loginOr401(req, res) {
     const { readUser } = require('../../core/linkAuth');
@@ -61,7 +63,7 @@ router.get('/z/:key', async (req, res) => {
         select: CONTENT_SELECT,
     });
     const matches = rules.sortByNearest(lives.filter((c) => rules.liveKey(c.link, c.meetingId) === key));
-    if (matches.length === 0) return res.status(404).json({ error: 'LIVE_NOT_FOUND', message: 'This live class was not found.' });
+    if (matches.length === 0) return res.status(404).json({ error: 'LIVE_NOT_FOUND', message: NOT_FOUND_MSG });
 
     let firstDeny = null;
     for (const c of matches.slice(0, 10)) {
@@ -78,7 +80,7 @@ router.get('/:id', async (req, res) => {
     const user = await loginOr401(req, res);
     if (!user) return;
     const content = await db().content.findUnique({ where: { id }, select: CONTENT_SELECT });
-    if (!content || !rules.isLiveContent(content)) return res.status(404).json({ error: 'LIVE_NOT_FOUND', message: 'This live class was not found.' });
+    if (!content || !rules.isLiveContent(content)) return res.status(404).json({ error: 'LIVE_NOT_FOUND', message: NOT_FOUND_MSG });
     res.json(await view(content, await accessFor(user, id)));
 });
 
