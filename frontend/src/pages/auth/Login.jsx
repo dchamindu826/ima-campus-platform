@@ -32,6 +32,14 @@ export default function Login({ setLoggedInUser }) {
         setLoggedInUser(res.data.user);
         toast.success(`Welcome back, ${res.data.user.firstName}!`);
         
+        // Came from a live-class link (/live/<id>)? Go back there.
+        let afterLogin = null;
+        try { afterLogin = sessionStorage.getItem('ima-after-login'); } catch (e) {}  // the live page clears it once it opens
+        if (afterLogin && /^\/live\/\d+$/.test(afterLogin)) {
+            navigate(afterLogin);
+            return;
+        }
+
         // Role-based Redirect
         const role = res.data.user.role?.toUpperCase(); // එන role එක Capital කරගන්නවා
         
