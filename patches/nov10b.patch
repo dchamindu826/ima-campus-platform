@@ -1,0 +1,81 @@
+diff --git a/backend/scripts/diag-bridge-status.js b/backend/scripts/diag-bridge-status.js
+new file mode 100644
+index 0000000..58631fd
+--- /dev/null
++++ b/backend/scripts/diag-bridge-status.js
+@@ -0,0 +1,40 @@
++// READ-ONLY. Why do saved bridge calls show as PENDING? Compares the status saved on the lead
++// with the status the Bridge Hand Overs page reads (round progress rows). Counts only.
++//   node scripts/diag-bridge-status.js 3455
++const prisma = require('../src/core/db');
++
++const cat = (s) => {
++    const v = String(s || 'pending').toLowerCase();
++    if (['answered', 'answer', 'completed'].includes(v)) return 'answered';
++    if (['reject', 'rejected', 'not_interested'].includes(v)) return 'reject';
++    if (['no_answer', 'no answer', 'busy'].includes(v)) return 'noAnswer';
++    return 'pending';
++};
++const inc = (m, k) => { m[k] = (m[k] || 0) + 1; };
++
++(async () => {
++    const agentId = parseInt(process.argv[2], 10);
++    const leads = await prisma.lead.findMany({
++        where: { assignedTo: agentId, campaignType: 'AFTER_SEMINAR', source: 'bridge_transfer', isCallCenter: true },
++        select: { id: true, phone: true, batchId: true, callStatus: true, roundProgress: { select: { roundNum: true, callStatus: true, campaignCategory: true, updatedAt: true } } },
++    });
++    const byBatch = {};
++    const rows = {};
++    for (const l of leads) {
++        const r2 = l.roundProgress.find((r) => r.roundNum === 2);
++        const r1 = l.roundProgress.find((r) => r.roundNum === 1);
++        const pageReads = r2 || r1 || l.roundProgress[0];
++        const saved = cat(l.callStatus);
++        const shown = cat(pageReads ? pageReads.callStatus : l.callStatus);
++        const key = `${(String(l.phone).match(/_BIZ_(\d+)/) || [])[1]}|batch ${l.batchId}`;
++        byBatch[key] = byBatch[key] || { leads: 0, savedPending: 0, shownPending: 0, savedButShownPending: 0 };
++        byBatch[key].leads++;
++        if (saved === 'pending') byBatch[key].savedPending++;
++        if (shown === 'pending') byBatch[key].shownPending++;
++        if (saved !== 'pending' && shown === 'pending') byBatch[key].savedButShownPending++;
++        inc(rows, `rounds=[${l.roundProgress.map((r) => `${r.roundNum}:${r.campaignCategory}:${cat(r.callStatus)}`).sort().join(',')}]`);
++    }
++    console.log('BY BUSINESS|BATCH', JSON.stringify(byBatch, null, 1));
++    console.log('ROUND ROWS PATTERN (top 15)', JSON.stringify(Object.entries(rows).sort((a, b) => b[1] - a[1]).slice(0, 15)));
++    await prisma.$disconnect();
++})().catch((e) => { console.error('DIAG FAILED', e.message); process.exit(1); });
+diff --git a/frontend/src/components/common/contenthub/ContentHub.jsx b/frontend/src/components/common/contenthub/ContentHub.jsx
+index e93a717..05e7e7b 100644
+--- a/frontend/src/components/common/contenthub/ContentHub.jsx
++++ b/frontend/src/components/common/contenthub/ContentHub.jsx
+@@ -861,6 +861,10 @@ export default function ContentHub() {
+               const folderGroups = {}; 
+               let hasSelections = false;
+               const defaultTopFolder = formData.get('contentGroupId') || prefilledFolder || '';
++              // Recordings / documents saved with the folder left on "Select Folder" silently went to
++              // Uncategorized (about 5 a day). Ask for a folder; "No Folder (Uncategorized)" must be chosen on purpose.
++              const needsFolder = contentType === 'recording' || contentType === 'document';
++              let missingFolder = 0;
+ 
+               Object.keys(hubBatchConfigs).forEach(bId => {
+                   Object.keys(hubBatchConfigs[bId] || {}).forEach(cId => {
+@@ -868,6 +872,7 @@ export default function ContentHub() {
+                       if (config && config.isChecked) {
+                           hasSelections = true;
+                           let folderKey = config.folderId;
++                          if (needsFolder && (!folderKey || folderKey === 'null' || folderKey === 'undefined') && !defaultTopFolder) missingFolder++;
+                           if (!folderKey || folderKey === 'uncategorized' || folderKey === 'null' || folderKey === 'undefined') {
+                               folderKey = defaultTopFolder || 'uncategorized';
+                           }
+@@ -892,6 +897,11 @@ export default function ContentHub() {
+                   return toast.error("Please select at least one subject to assign this content!");
+               }
+ 
++              if (missingFolder > 0) {
++                  setIsSubmittingContent(false);
++                  return toast.error(`Folder එකක් තෝරන්න — subjects ${missingFolder}ක folder එක "Select Folder" ලෙස තියෙනවා. Folder නැතුව දාන්න ඕන නම් "No Folder (Uncategorized)" තෝරන්න.`, { duration: 6000 });
++              }
++
+               const submissions = Object.keys(folderGroups).map(async (folderKey) => {
+                   const fd = new FormData(e.target);
+                   fd.set('type', contentType);
