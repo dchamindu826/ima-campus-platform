@@ -1,0 +1,77 @@
+diff --git a/backend/controllers/contentController.js b/backend/controllers/contentController.js
+index 50b1dda..3f58ace 100644
+--- a/backend/controllers/contentController.js
++++ b/backend/controllers/contentController.js
+@@ -865,6 +865,8 @@ exports.deleteContentGroup = async (req, res) => {
+         const allGroupIds = [folderId, ...subFolders.map(sf => sf.id)];
+ 
+         // Unlink content items from deleted folder(s) so content is not lost
++        const affected = await prisma.content.findMany({ where: { contentGroupId: { in: allGroupIds } }, select: { id: true } });
++        console.log(`[content-folder] folder ${allGroupIds.join(',')} DELETED by user=${req.user?.id || req.user?.userId} -> ${affected.length} items now uncategorized: ${affected.map(a => a.id).slice(0, 200).join(',')}`);
+         await prisma.content.updateMany({
+             where: { contentGroupId: { in: allGroupIds } },
+             data: { contentGroupId: null }
+@@ -1185,7 +1187,17 @@ exports.updateContentMassAssign = async (req, res) => {
+             updateData.fileName = mcqFileName;
+         }
+ 
++        // Folder-change trail (pm2 log): recordings "moving out of folders" — who, which content, from → to.
++        let folderBefore;
++        if ('contentGroupId' in updateData) {
++            const before = await prisma.content.findUnique({ where: { id: parseInt(content_id) }, select: { contentGroupId: true } }).catch(() => null);
++            folderBefore = before ? before.contentGroupId : undefined;
++        }
++
+         const updated = await prisma.content.update({ where: { id: parseInt(content_id) }, data: updateData });
++        if (folderBefore !== undefined && folderBefore !== updated.contentGroupId) {
++            console.log(`[content-folder] content=${updated.id} folder ${folderBefore} -> ${updated.contentGroupId} by user=${req.user?.id || req.user?.userId} via edit`);
++        }
+ 
+         if (type === 'paper' || type === 'sPaper' || type === 'testRanking' || type === 'rankingTest') {
+             const { paperType } = req.body;
+diff --git a/backend/scripts/diag-bridge-status.js b/backend/scripts/diag-bridge-status.js
+new file mode 100644
+index 0000000..58631fd
+--- /dev/null
++++ b/backend/scripts/diag-bridge-status.js
+@@ -0,0 +1,40 @@
++// READ-ONLY. Why do saved bridge calls show as PENDING? Compares the status saved on the lead
++// with the status the Bridge Hand Overs page reads (round progress rows). Counts only.
++//   node scripts/diag-bridge-status.js 3455
++const prisma = require('../src/core/db');
++
++const cat = (s) => {
++    const v = String(s || 'pending').toLowerCase();
++    if (['answered', 'answer', 'completed'].includes(v)) return 'answered';
++    if (['reject', 'rejected', 'not_interested'].includes(v)) return 'reject';
++    if (['no_answer', 'no answer', 'busy'].includes(v)) return 'noAnswer';
++    return 'pending';
++};
++const inc = (m, k) => { m[k] = (m[k] || 0) + 1; };
++
++(async () => {
++    const agentId = parseInt(process.argv[2], 10);
++    const leads = await prisma.lead.findMany({
++        where: { assignedTo: agentId, campaignType: 'AFTER_SEMINAR', source: 'bridge_transfer', isCallCenter: true },
++        select: { id: true, phone: true, batchId: true, callStatus: true, roundProgress: { select: { roundNum: true, callStatus: true, campaignCategory: true, updatedAt: true } } },
++    });
++    const byBatch = {};
++    const rows = {};
++    for (const l of leads) {
++        const r2 = l.roundProgress.find((r) => r.roundNum === 2);
++        const r1 = l.roundProgress.find((r) => r.roundNum === 1);
++        const pageReads = r2 || r1 || l.roundProgress[0];
++        const saved = cat(l.callStatus);
++        const shown = cat(pageReads ? pageReads.callStatus : l.callStatus);
++        const key = `${(String(l.phone).match(/_BIZ_(\d+)/) || [])[1]}|batch ${l.batchId}`;
++        byBatch[key] = byBatch[key] || { leads: 0, savedPending: 0, shownPending: 0, savedButShownPending: 0 };
++        byBatch[key].leads++;
++        if (saved === 'pending') byBatch[key].savedPending++;
++        if (shown === 'pending') byBatch[key].shownPending++;
++        if (saved !== 'pending' && shown === 'pending') byBatch[key].savedButShownPending++;
++        inc(rows, `rounds=[${l.roundProgress.map((r) => `${r.roundNum}:${r.campaignCategory}:${cat(r.callStatus)}`).sort().join(',')}]`);
++    }
++    console.log('BY BUSINESS|BATCH', JSON.stringify(byBatch, null, 1));
++    console.log('ROUND ROWS PATTERN (top 15)', JSON.stringify(Object.entries(rows).sort((a, b) => b[1] - a[1]).slice(0, 15)));
++    await prisma.$disconnect();
++})().catch((e) => { console.error('DIAG FAILED', e.message); process.exit(1); });
